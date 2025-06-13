@@ -100,8 +100,8 @@ export function promotePiece(piece: Piece): Piece {
   if (!promotedType) return piece;
   
   return {
-    ...piece,
     type: promotedType,
+    player: piece.player,
     promoted: true,
   };
 }

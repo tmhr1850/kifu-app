@@ -5,6 +5,7 @@ import {
   Move,
   GameState,
   PieceType,
+  HandPieces,
 } from '@/types/shogi';
 import {
   getPieceAt,
