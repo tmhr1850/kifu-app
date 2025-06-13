@@ -224,3 +224,6 @@ export function isUchifuzume(
 // createEmptyHandPiecesをインポート（循環参照を避けるため）
 import { createEmptyHandPieces as createEmptyHandPiecesImport } from '../board';
 import { isInCheck } from './basic';
+
+// Re-export for external use
+export { isInCheck } from './basic';

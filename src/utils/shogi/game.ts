@@ -21,7 +21,13 @@ import {
   isValidMove,
   isCheckmate,
   isStalemate,
+  isInCheck,
 } from './validators';
+import {
+  createPositionHistory,
+  detectRepetition,
+  PositionHistory,
+} from './repetition';
 
 // 新しいゲームを開始
 export function createNewGame(): GameState {
@@ -30,6 +36,7 @@ export function createNewGame(): GameState {
     handPieces: createEmptyHandPieces(),
     currentPlayer: Player.SENTE,
     moveHistory: [],
+    positionHistory: createPositionHistory(),
   };
 }
 
@@ -85,6 +92,7 @@ export function makeMove(gameState: GameState, move: Move): GameState | null {
     handPieces: newHandPieces,
     currentPlayer: nextPlayer,
     moveHistory: newMoveHistory,
+    positionHistory: gameState.positionHistory,
   };
 }
 
@@ -92,10 +100,19 @@ export function makeMove(gameState: GameState, move: Move): GameState | null {
 export interface GameStatus {
   isOver: boolean;
   winner: Player | null;
-  reason: 'checkmate' | 'stalemate' | 'resignation' | null;
+  reason: 'checkmate' | 'stalemate' | 'resignation' | 'repetition' | 'perpetual_check' | 'impasse' | 'timeout' | null;
 }
 
 export function getGameStatus(gameState: GameState): GameStatus {
+  // 投了チェック
+  if (gameState.resigned) {
+    return {
+      isOver: true,
+      winner: getOpponentPlayer(gameState.currentPlayer),
+      reason: 'resignation',
+    };
+  }
+
   // 詰みチェック
   if (isCheckmate(gameState)) {
     return {
@@ -112,6 +129,69 @@ export function getGameStatus(gameState: GameState): GameStatus {
       winner: null,
       reason: 'stalemate',
     };
+  }
+
+  // 千日手チェック
+  if (gameState.positionHistory) {
+    // isInCheckは失敗する可能性があるので、try-catchで囲む
+    let currentIsInCheck = false
+    try {
+      currentIsInCheck = isInCheck(gameState.board, gameState.currentPlayer)
+    } catch {
+      // 王が見つからない場合などは無視
+    }
+    
+    const repetitionResult = detectRepetition(
+      gameState,
+      gameState.positionHistory as PositionHistory,
+      currentIsInCheck
+    )
+    
+    if (repetitionResult.isRepetition) {
+      if (repetitionResult.isPerpetualCheck) {
+        // 連続王手の千日手は王手をかけている側の負け
+        return {
+          isOver: true,
+          winner: gameState.currentPlayer, // 王手をかけられている側の勝ち
+          reason: 'perpetual_check',
+        };
+      } else {
+        // 通常の千日手は引き分け
+        return {
+          isOver: true,
+          winner: null,
+          reason: 'repetition',
+        };
+      }
+    }
+  }
+
+  // 持将棋チェック
+  if (checkImpasse(gameState)) {
+    // 点数計算で勝敗を決める
+    const sentePoints = calculateMaterialPoints(gameState, Player.SENTE);
+    const gotePoints = calculateMaterialPoints(gameState, Player.GOTE);
+
+    if (sentePoints >= 24 && gotePoints < 24) {
+      return {
+        isOver: true,
+        winner: Player.SENTE,
+        reason: 'impasse',
+      };
+    } else if (gotePoints >= 24 && sentePoints < 24) {
+      return {
+        isOver: true,
+        winner: Player.GOTE,
+        reason: 'impasse',
+      };
+    } else {
+      // 両者24点以上または両者24点未満の場合は引き分け
+      return {
+        isOver: true,
+        winner: null,
+        reason: 'impasse',
+      };
+    }
   }
 
   return {
@@ -175,4 +255,84 @@ export function gameToKifu(gameState: GameState): string {
   });
   
   return lines.join('\n');
+}
+
+// 投了
+export function resign(gameState: GameState): GameState {
+  return {
+    ...gameState,
+    resigned: true,
+  };
+}
+
+// 持将棋判定
+export function checkImpasse(gameState: GameState): boolean {
+  // 両玉の位置を探す
+  let senteKingPos: { row: number; col: number } | null = null;
+  let goteKingPos: { row: number; col: number } | null = null;
+
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      const piece = gameState.board[row][col];
+      if (piece && piece.type === PieceType.OU) {
+        if (piece.player === Player.SENTE) {
+          senteKingPos = { row, col };
+        } else {
+          goteKingPos = { row, col };
+        }
+      }
+    }
+  }
+
+  // 両玉が存在しない場合は持将棋ではない
+  if (!senteKingPos || !goteKingPos) {
+    return false;
+  }
+
+  // 先手の玉が敵陣（0-2段目）にいるか
+  const senteInEnemyTerritory = senteKingPos.row <= 2;
+  // 後手の玉が敵陣（6-8段目）にいるか
+  const goteInEnemyTerritory = goteKingPos.row >= 6;
+
+  return senteInEnemyTerritory && goteInEnemyTerritory;
+}
+
+// 駒の点数計算（持将棋判定用）
+export function calculateMaterialPoints(gameState: GameState, player: Player): number {
+  const pointMap: Partial<Record<PieceType, number>> = {
+    [PieceType.FU]: 1,
+    [PieceType.KYO]: 1,
+    [PieceType.KEI]: 1,
+    [PieceType.GIN]: 1,
+    [PieceType.KIN]: 1,
+    [PieceType.KAKU]: 5,
+    [PieceType.HI]: 5,
+    // 成り駒
+    [PieceType.TO]: 1,
+    [PieceType.NKYO]: 1,
+    [PieceType.NKEI]: 1,
+    [PieceType.NGIN]: 1,
+    [PieceType.UMA]: 5,
+    [PieceType.RYU]: 5,
+  };
+
+  let points = 0;
+
+  // 盤上の駒を数える
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      const piece = gameState.board[row][col];
+      if (piece && piece.player === player && piece.type !== PieceType.OU) {
+        points += pointMap[piece.type] || 0;
+      }
+    }
+  }
+
+  // 持ち駒を数える
+  const handPieces = gameState.handPieces[player];
+  handPieces.forEach((count, pieceType) => {
+    points += (pointMap[pieceType] || 0) * count;
+  });
+
+  return points;
 }
