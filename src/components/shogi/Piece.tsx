@@ -1,27 +1,27 @@
-'use client';
+'use client'
 
-import { Piece as PieceType } from './types';
+import React from 'react'
+import { PieceType } from '@/utils/shogi/initialSetup'
 
 interface PieceProps {
-  piece: PieceType;
+  type: PieceType
+  isGote: boolean
+  onClick?: () => void
 }
 
-export default function Piece({ piece }: PieceProps) {
-  const isGote = piece.owner === 'gote';
-  
+export const Piece: React.FC<PieceProps> = ({ type, isGote, onClick }) => {
+  const baseClasses = 'piece text-amber-900 bg-amber-100 rounded px-1 py-0.5 text-sm sm:text-base font-bold select-none transition-all duration-200'
+  const rotationClass = isGote ? 'rotate-180' : ''
+  const interactionClasses = onClick 
+    ? 'cursor-pointer hover:bg-amber-200 hover:shadow-md' 
+    : ''
+
   return (
     <div
-      className={`
-        flex items-center justify-center
-        text-lg sm:text-xl md:text-2xl font-bold
-        ${isGote ? 'rotate-180' : ''}
-        select-none cursor-pointer
-        hover:scale-110 transition-transform duration-200
-      `}
+      className={`${baseClasses} ${rotationClass} ${interactionClasses}`}
+      onClick={onClick}
     >
-      <span className="text-amber-900 dark:text-amber-100">
-        {piece.type}
-      </span>
+      {type}
     </div>
-  );
+  )
 }
