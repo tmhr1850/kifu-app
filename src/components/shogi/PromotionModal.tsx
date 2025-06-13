@@ -1,0 +1,79 @@
+'use client';
+
+import React, { useEffect, useRef } from 'react';
+
+interface PromotionModalProps {
+  isOpen: boolean;
+  onPromote: () => void;
+  onCancel: () => void;
+  pieceName: string;
+  canCancel: boolean; // 成らないを選択できるか（強制成りでない場合）
+}
+
+export default function PromotionModal({
+  isOpen,
+  onPromote,
+  onCancel,
+  pieceName,
+  canCancel
+}: PromotionModalProps) {
+  const promoteButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      // フォーカスを最初のボタンに設定
+      if (canCancel && cancelButtonRef.current) {
+        cancelButtonRef.current.focus();
+      } else if (promoteButtonRef.current) {
+        promoteButtonRef.current.focus();
+      }
+    }
+  }, [isOpen, canCancel]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="promotion-title"
+    >
+      <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-2xl">
+        <h2 
+          id="promotion-title"
+          className="text-xl font-bold text-center mb-4"
+        >
+          {canCancel ? '成りますか？' : '成らなければなりません'}
+        </h2>
+        
+        <p className="text-center mb-6 text-gray-700">
+          {pieceName}
+        </p>
+
+        <div className="flex gap-3 justify-center">
+          {canCancel && (
+            <button
+              ref={cancelButtonRef}
+              onClick={onCancel}
+              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+              aria-label="成らない"
+            >
+              成らない
+            </button>
+          )}
+          <button
+            ref={promoteButtonRef}
+            onClick={onPromote}
+            className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400"
+            aria-label="成る"
+            autoFocus={!canCancel}
+          >
+            成る
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
