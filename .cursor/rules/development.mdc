@@ -1,0 +1,199 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 開発ガイダンス
+
+このファイルは、プロジェクト「kifu-app」における開発プロセスとコーディング規約に関するガイダンスを提供します。
+
+## 開発環境セットアップ
+
+### 必要な環境
+- Node.js 18.17.0 以上
+- npm 9.0.0 以上
+- Git 2.30.0 以上
+
+### 初期セットアップ
+```bash
+# リポジトリクローン
+git clone [repository-url]
+cd kifu-app
+
+# 依存関係インストール
+npm install
+
+# 開発サーバー起動
+npm run dev
+```
+
+## コーディング規約
+
+### TypeScript規約
+- **厳密モード必須**：`strict: true`設定を維持
+- **型定義必須**：`any`型の使用禁止
+- **インターフェース命名**：`I`プレフィックス使用禁止、PascalCase
+- **変数・関数命名**：camelCase
+- **定数命名**：UPPER_SNAKE_CASE
+
+### React/Next.js規約
+- **関数コンポーネント必須**：クラスコンポーネント使用禁止
+- **App Router使用**：Pages Routerは使用しない
+- **Server/Client Component区分**：適切な`'use client'`指定
+- **カスタムフック命名**：`use`プレフィックス必須
+
+### ファイル・ディレクトリ命名
+```
+src/
+├── app/                    # App Router ページ
+│   ├── (auth)/            # ルートグループ
+│   ├── globals.css        # グローバルスタイル
+│   ├── layout.tsx         # ルートレイアウト
+│   └── page.tsx          # ホームページ
+├── components/            # 再利用可能コンポーネント
+│   ├── ui/               # UIコンポーネント
+│   └── common/           # 共通コンポーネント
+├── hooks/                # カスタムフック
+├── lib/                  # ユーティリティ関数
+├── types/                # 型定義
+└── styles/               # スタイル関連
+```
+
+## Git運用ルール
+
+### ブランチ戦略
+- **main**：本番環境
+- **develop**：開発環境
+- **feature/[機能名]**：機能開発
+- **fix/[修正内容]**：バグ修正
+- **hotfix/[緊急修正]**：緊急対応
+
+### コミットメッセージ規約
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+#### Type一覧
+- **feat**：新機能追加
+- **fix**：バグ修正
+- **docs**：ドキュメント更新
+- **style**：コードフォーマット
+- **refactor**：リファクタリング
+- **test**：テスト追加・修正
+- **chore**：設定変更等
+
+#### 例
+```
+feat(auth): ユーザーログイン機能を追加
+
+- Google OAuth2.0による認証実装
+- JWT トークン管理機能追加
+- ログイン状態の永続化
+
+Closes #123
+```
+
+## コード品質管理
+
+### Linting・Formatting
+```bash
+# ESLint実行
+npm run lint
+
+# ESLint自動修正
+npm run lint:fix
+
+# Prettier実行（設定時）
+npm run format
+```
+
+### 必須チェック項目
+- [ ] ESLintエラー0件
+- [ ] TypeScriptコンパイルエラー0件
+- [ ] 未使用のimport削除
+- [ ] console.log等のデバッグコード削除
+- [ ] 適切なコメント記載
+
+## テスト戦略
+
+### テスト種別
+1. **単体テスト**：Jest + React Testing Library
+2. **結合テスト**：Playwright
+3. **視覚回帰テスト**：Storybook + Chromatic
+
+### テストファイル命名
+```
+src/
+├── components/
+│   ├── Button.tsx
+│   └── Button.test.tsx     # 単体テスト
+├── __tests__/              # 結合テスト
+└── stories/                # Storybook
+```
+
+## パフォーマンス最適化
+
+### 必須対応項目
+- **画像最適化**：next/imageの使用
+- **フォント最適化**：next/fontの使用
+- **バンドルサイズ**：@next/bundle-analyzerでチェック
+- **Core Web Vitals**：目標値クリア
+
+### 推奨事項
+- Dynamic Importによるコード分割
+- React.memoによる不要な再レンダリング防止
+- useMemo/useCallbackの適切な使用
+- Server Componentsの積極活用
+
+## セキュリティ対策
+
+### 必須対応
+- **環境変数管理**：`.env.local`使用、機密情報はコードに含めない
+- **入力値検証**：Zodやyup等でバリデーション
+- **XSS対策**：dangerouslySetInnerHTML使用禁止
+- **CSRF対策**：適切なCSRFトークン実装
+
+### 推奨事項
+- 依存関係の定期更新（`npm audit`実行）
+- Content Security Policy設定
+- セキュリティヘッダー設定
+
+## デプロイメント
+
+### 本番デプロイ前チェックリスト
+- [ ] 全テストパス
+- [ ] パフォーマンス計測クリア
+- [ ] セキュリティ監査完了
+- [ ] 環境変数設定確認
+- [ ] バックアップ取得
+
+### 環境別設定
+```bash
+# 開発環境
+npm run dev
+
+# 本番ビルド
+npm run build
+npm run start
+
+# 静的エクスポート（必要時）
+npm run export
+```
+
+## トラブルシューティング
+
+### よくある問題
+1. **TypeScriptエラー**：型定義の確認
+2. **Hydrationエラー**：SSR/CSRの状態不一致
+3. **パフォーマンス低下**：不要な再レンダリング
+4. **スタイル適用されない**：Tailwind設定確認
+
+### デバッグ方法
+- React Developer Tools使用
+- Next.js Built-in ESLint設定確認
+- Network タブでリクエスト確認
+- Lighthouse でパフォーマンス計測

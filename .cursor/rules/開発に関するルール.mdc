@@ -1,0 +1,334 @@
+# 開発に関するルール
+
+## 目的
+このドキュメントは、開発チームが遵守すべきコーディング規約、開発プロセス、品質基準を定義します。
+
+## コーディング規約
+
+### 一般原則
+- **DRY原則**: Don't Repeat Yourself - 重複を避ける
+- **KISS原則**: Keep It Simple, Stupid - シンプルに保つ
+- **YAGNI原則**: You Aren't Gonna Need It - 必要になるまで実装しない
+- **早期リターン**: ネストを深くしない、ガード節を使用する
+
+### 命名規則
+
+#### TypeScript/JavaScript
+```typescript
+// 変数名: camelCase
+const userName = "John Doe";
+
+// 定数: UPPER_SNAKE_CASE
+const MAX_RETRY_COUNT = 3;
+
+// 関数名: camelCase（動詞で始める）
+function calculateTotal(items: Item[]): number {
+  // ...
+}
+
+// クラス名: PascalCase
+class UserService {
+  // ...
+}
+
+// インターフェース: PascalCase（Iプレフィックスは付けない）
+interface User {
+  id: string;
+  name: string;
+}
+
+// 型エイリアス: PascalCase
+type UserId = string;
+
+// Enum: PascalCase（値はUPPER_SNAKE_CASE）
+enum UserRole {
+  ADMIN = "ADMIN",
+  USER = "USER",
+  GUEST = "GUEST"
+}
+```
+
+#### ファイル・ディレクトリ名
+- コンポーネントファイル: PascalCase（例: `UserProfile.tsx`）
+- その他のファイル: kebab-case（例: `user-service.ts`）
+- ディレクトリ: kebab-case（例: `user-management`）
+
+### コード品質
+
+#### 関数設計
+- 単一責任の原則を守る
+- 引数は3つ以下を推奨
+- 副作用を明確にする
+- 純粋関数を優先する
+
+```typescript
+// 良い例
+function calculateDiscount(price: number, discountRate: number): number {
+  return price * (1 - discountRate);
+}
+
+// 避けるべき例
+function processOrderAndSendEmailAndUpdateInventory(order: Order): void {
+  // 複数の責任を持つ関数
+}
+```
+
+#### エラーハンドリング
+```typescript
+// カスタムエラークラスを使用
+class ValidationError extends Error {
+  constructor(message: string, public field: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+// Result型パターンの使用
+type Result<T, E = Error> = 
+  | { success: true; data: T }
+  | { success: false; error: E };
+
+async function fetchUser(id: string): Promise<Result<User>> {
+  try {
+    const user = await api.getUser(id);
+    return { success: true, data: user };
+  } catch (error) {
+    return { success: false, error };
+  }
+}
+```
+
+#### コメント
+- コードが「何を」するかではなく「なぜ」するかを説明する
+- JSDocコメントを活用する
+- TODOコメントには担当者と期限を記載
+
+```typescript
+/**
+ * ユーザーの年齢を計算する
+ * @param birthDate - 生年月日
+ * @returns 現在の年齢
+ */
+function calculateAge(birthDate: Date): number {
+  // 誕生日前の場合を考慮して1を引く
+  // TODO: [@username 2024-12-31] タイムゾーンの考慮を追加
+  const today = new Date();
+  // ...
+}
+```
+
+## 開発フロー
+
+### ブランチ戦略
+- **main**: 本番環境にデプロイ可能な状態
+- **develop**: 開発中の最新状態
+- **feature/\***: 新機能開発
+- **bugfix/\***: バグ修正
+- **hotfix/\***: 緊急修正
+
+### コミットメッセージ
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**Type**:
+- feat: 新機能
+- fix: バグ修正
+- docs: ドキュメントのみの変更
+- style: コードの動作に影響しない変更
+- refactor: リファクタリング
+- perf: パフォーマンス改善
+- test: テストの追加・修正
+- chore: ビルドプロセスやツールの変更
+
+**例**:
+```
+feat(auth): ソーシャルログイン機能を追加
+
+GoogleとGitHubでのOAuth認証を実装。
+既存のメール認証と併用可能。
+
+Closes #123
+```
+
+### プルリクエスト
+
+#### PRテンプレート
+```markdown
+## 概要
+変更の概要を記載
+
+## 変更内容
+- [ ] 実装した機能や修正内容
+- [ ] 関連する設定変更
+
+## テスト
+- [ ] ユニットテスト追加/更新
+- [ ] 統合テスト実施
+- [ ] 手動テストシナリオ
+
+## チェックリスト
+- [ ] セルフレビュー完了
+- [ ] リンター/フォーマッターを実行
+- [ ] 関連ドキュメント更新
+- [ ] CHANGELOG更新（必要な場合）
+
+## スクリーンショット（UI変更の場合）
+変更前後のスクリーンショットを添付
+
+## 関連Issue
+Closes #
+```
+
+### コードレビュー
+
+#### レビュー観点
+1. **機能性**: 要件を満たしているか
+2. **可読性**: コードが理解しやすいか
+3. **保守性**: 将来の変更が容易か
+4. **パフォーマンス**: 効率的な実装か
+5. **セキュリティ**: 脆弱性がないか
+
+#### レビューコメント
+- 建設的で具体的なフィードバック
+- 改善案を提示
+- 良い点も積極的に評価
+
+## テスト
+
+### テスト戦略
+- **単体テスト**: 個々の関数/クラスの動作確認
+- **統合テスト**: モジュール間の連携確認
+- **E2Eテスト**: ユーザーシナリオの確認
+
+### テストカバレッジ
+- 新規コード: 80%以上
+- 重要なビジネスロジック: 90%以上
+
+### テストコード例
+```typescript
+describe('UserService', () => {
+  describe('createUser', () => {
+    it('should create a new user with valid data', async () => {
+      // Arrange
+      const userData = {
+        email: 'test@example.com',
+        name: 'Test User'
+      };
+
+      // Act
+      const result = await userService.createUser(userData);
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.data).toMatchObject(userData);
+    });
+
+    it('should return error for duplicate email', async () => {
+      // ...
+    });
+  });
+});
+```
+
+## 開発環境
+
+### 必須ツール
+- **エディタ**: VS Code（推奨）または Cursor
+- **Node.js**: プロジェクトで指定されたバージョン
+- **Git**: 最新安定版
+- **Docker**: ローカル環境構築用
+
+### VS Code拡張機能
+- ESLint
+- Prettier
+- TypeScript and JavaScript Language Features
+- GitLens
+- Error Lens
+
+### 環境構築
+```bash
+# リポジトリのクローン
+git clone [repository-url]
+
+# 依存関係のインストール
+npm install
+
+# 環境変数の設定
+cp .env.example .env.local
+
+# 開発サーバーの起動
+npm run dev
+```
+
+## セキュリティ
+
+### 基本原則
+- 最小権限の原則
+- 多層防御
+- ゼロトラストアプローチ
+
+### 実装時の注意点
+1. **入力検証**: 全ての外部入力を検証
+2. **認証・認可**: 適切なアクセス制御
+3. **データ暗号化**: 機密データの暗号化
+4. **依存関係管理**: 定期的な脆弱性チェック
+5. **ログ管理**: 機密情報をログに出力しない
+
+### セキュアコーディング
+```typescript
+// SQLインジェクション対策: パラメータ化クエリ使用
+const user = await db.query(
+  'SELECT * FROM users WHERE id = $1',
+  [userId]
+);
+
+// XSS対策: 適切なエスケープ処理
+function sanitizeHtml(input: string): string {
+  return DOMPurify.sanitize(input);
+}
+
+// CSRF対策: トークンの使用
+app.use(csrf({ cookie: true }));
+```
+
+## パフォーマンス
+
+### 最適化の原則
+1. 計測してから最適化
+2. ボトルネックに集中
+3. キャッシュの活用
+4. 非同期処理の適切な使用
+
+### React/Next.jsの最適化
+```typescript
+// メモ化
+const ExpensiveComponent = React.memo(({ data }) => {
+  // ...
+});
+
+// 遅延読み込み
+const HeavyComponent = dynamic(() => import('./HeavyComponent'), {
+  loading: () => <Skeleton />
+});
+
+// 画像最適化
+import Image from 'next/image';
+<Image src="/hero.jpg" alt="Hero" width={1200} height={600} priority />
+```
+
+## 継続的改善
+
+### 技術的負債の管理
+- 定期的なリファクタリング時間の確保
+- 技術的負債の可視化とトラッキング
+- 段階的な改善計画
+
+### 学習と共有
+- 週次の技術共有会
+- ポストモーテムの実施
+- ベストプラクティスの文書化
