@@ -33,6 +33,7 @@ jobs:
 
       - name: Run Claude Code Review
         id: claude-review
+
         uses: tmhr1850/claude-code-action@main
         with:
           use_oauth: "true"
@@ -51,6 +52,7 @@ jobs:
             - Performance considerations
             - Security concerns
             - Test coverage
+
 
             Be constructive and helpful in your feedback.
 
