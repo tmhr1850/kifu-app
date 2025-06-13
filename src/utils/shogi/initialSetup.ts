@@ -1,8 +1,9 @@
-export type PieceType = '王' | '玉' | '飛' | '角' | '金' | '銀' | '桂' | '香' | '歩'
+export type PieceType = '王' | '玉' | '飛' | '角' | '金' | '銀' | '桂' | '香' | '歩' | '竜' | '馬' | '全' | '圭' | '杏' | 'と'
 
 export interface BoardPiece {
   type: PieceType
   isGote: boolean
+  promoted?: boolean
 }
 
 export function getInitialBoard(): (BoardPiece | null)[][] {

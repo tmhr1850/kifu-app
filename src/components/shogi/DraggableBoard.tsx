@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Piece } from './Piece'
 import { getInitialBoard, BoardPiece } from '@/utils/shogi/initialSetup'
 import { Position, getValidMoves, isValidMove } from '@/utils/shogi/moveRules'
+import PromotionModal from './PromotionModal'
+import { canPromotePiece, canPromoteAt, mustPromoteAt, promotePiece, getPieceDisplayName } from '@/utils/shogi/pieceUtils'
 
 interface DraggableBoardProps {
   onMove?: (from: Position, to: Position) => void
@@ -16,6 +18,7 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
   const [draggedPiece, setDraggedPiece] = useState<{ position: Position, piece: BoardPiece } | null>(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const [promotionChoice, setPromotionChoice] = useState<{ from: Position, to: Position, piece: BoardPiece } | null>(null)
   const boardRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
 
@@ -33,41 +36,6 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  useEffect(() => {
-    if (draggedPiece) {
-      const handleMouseMove = (e: MouseEvent) => {
-        setMousePosition({ x: e.clientX, y: e.clientY })
-      }
-
-      const handleMouseUp = (e: MouseEvent) => {
-        handleDrop(e)
-      }
-
-      const handleTouchMove = (e: TouchEvent) => {
-        e.preventDefault()
-        const touch = e.touches[0]
-        setMousePosition({ x: touch.clientX, y: touch.clientY })
-      }
-
-      const handleTouchEnd = (e: TouchEvent) => {
-        e.preventDefault()
-        const touch = e.changedTouches[0]
-        handleDropAtPosition(touch.clientX, touch.clientY)
-      }
-
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
-      document.addEventListener('touchmove', handleTouchMove, { passive: false })
-      document.addEventListener('touchend', handleTouchEnd, { passive: false })
-
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove)
-        document.removeEventListener('mouseup', handleMouseUp)
-        document.removeEventListener('touchmove', handleTouchMove)
-        document.removeEventListener('touchend', handleTouchEnd)
-      }
-    }
-  }, [draggedPiece, handleDrop, handleDropAtPosition])
 
   const cancelSelection = () => {
     setSelectedPosition(null)
@@ -93,9 +61,12 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
 
   const handleCellClick = useCallback((row: number, col: number) => {
     if (selectedPosition && isValidMove(boardState, selectedPosition, { row, col })) {
-      movePiece(selectedPosition, { row, col })
+      const piece = boardState[selectedPosition.row][selectedPosition.col]
+      if (piece) {
+        checkPromotion(selectedPosition, { row, col }, piece)
+      }
     }
-  }, [selectedPosition, boardState, movePiece])
+  }, [selectedPosition, boardState, checkPromotion])
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent, row: number, col: number, piece: BoardPiece) => {
     e.preventDefault()
@@ -136,18 +107,11 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
       if (isValidMove(boardState, draggedPiece.position, { row, col: targetCol })) {
         const from = draggedPiece.position
         const to = { row, col: targetCol }
-        
-        const newBoard = boardState.map(row => [...row])
-        const piece = newBoard[from.row][from.col]
+        const piece = boardState[from.row][from.col]
         
         if (piece) {
-          newBoard[to.row][to.col] = piece
-          newBoard[from.row][from.col] = null
-          setBoardState(newBoard)
-          
-          if (onMove) {
-            onMove(from, to)
-          }
+          checkPromotion(from, to, piece)
+          return
         }
       }
     }
@@ -156,18 +120,21 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
     setValidMoves([])
     setDraggedPiece(null)
     isDragging.current = false
-  }, [draggedPiece, boardState, onMove])
+  }, [draggedPiece, boardState, onMove, checkPromotion])
 
-  const handleDrop = useCallback((e: MouseEvent) => {
-    handleDropAtPosition(e.clientX, e.clientY)
-  }, [handleDropAtPosition])
-
-  const movePiece = useCallback((from: Position, to: Position) => {
+  const movePiece = useCallback((from: Position, to: Position, shouldPromote: boolean = false) => {
     const newBoard = boardState.map(row => [...row])
     const piece = newBoard[from.row][from.col]
     
     if (piece) {
-      newBoard[to.row][to.col] = piece
+      // 成り処理
+      if (shouldPromote && canPromotePiece(piece.type)) {
+        const promotedType = promotePiece(piece.type)
+        newBoard[to.row][to.col] = { ...piece, type: promotedType, promoted: true }
+      } else {
+        newBoard[to.row][to.col] = piece
+      }
+      
       newBoard[from.row][from.col] = null
       setBoardState(newBoard)
       
@@ -182,6 +149,35 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
     isDragging.current = false
   }, [boardState, onMove])
 
+  const checkPromotion = useCallback((from: Position, to: Position, piece: BoardPiece) => {
+    // 既に成っている駒は成れない
+    if (piece.promoted) {
+      movePiece(from, to, false)
+      return
+    }
+
+    // 成れる駒かチェック
+    if (!canPromotePiece(piece.type)) {
+      movePiece(from, to, false)
+      return
+    }
+
+    // 成れる位置かチェック
+    if (!canPromoteAt(from.row, to.row, piece.isGote)) {
+      movePiece(from, to, false)
+      return
+    }
+
+    // 強制成りかチェック
+    if (mustPromoteAt(piece.type, to.row, piece.isGote)) {
+      movePiece(from, to, true)
+      return
+    }
+
+    // 成り選択モーダルを表示
+    setPromotionChoice({ from, to, piece })
+  }, [movePiece])
+
   const isHighlighted = (row: number, col: number) => {
     return validMoves.some(move => move.row === row && move.col === col)
   }
@@ -189,6 +185,42 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
   const isSelected = (row: number, col: number) => {
     return selectedPosition?.row === row && selectedPosition?.col === col
   }
+
+  useEffect(() => {
+    if (draggedPiece) {
+      const handleMouseMove = (e: MouseEvent) => {
+        setMousePosition({ x: e.clientX, y: e.clientY })
+      }
+
+      const handleMouseUp = (e: MouseEvent) => {
+        handleDropAtPosition(e.clientX, e.clientY)
+      }
+
+      const handleTouchMove = (e: TouchEvent) => {
+        e.preventDefault()
+        const touch = e.touches[0]
+        setMousePosition({ x: touch.clientX, y: touch.clientY })
+      }
+
+      const handleTouchEnd = (e: TouchEvent) => {
+        e.preventDefault()
+        const touch = e.changedTouches[0]
+        handleDropAtPosition(touch.clientX, touch.clientY)
+      }
+
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      document.addEventListener('touchmove', handleTouchMove, { passive: false })
+      document.addEventListener('touchend', handleTouchEnd, { passive: false })
+
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+        document.removeEventListener('touchmove', handleTouchMove)
+        document.removeEventListener('touchend', handleTouchEnd)
+      }
+    }
+  }, [draggedPiece, handleDropAtPosition])
 
   return (
     <div className="board-container max-w-screen-sm mx-auto p-4">
@@ -275,6 +307,22 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
             isGote={draggedPiece.piece.isGote}
           />
         </div>
+      )}
+
+      {promotionChoice && (
+        <PromotionModal
+          isOpen={true}
+          onPromote={() => {
+            movePiece(promotionChoice.from, promotionChoice.to, true)
+            setPromotionChoice(null)
+          }}
+          onCancel={() => {
+            movePiece(promotionChoice.from, promotionChoice.to, false)
+            setPromotionChoice(null)
+          }}
+          pieceName={getPieceDisplayName(promotionChoice.piece.type)}
+          canCancel={!mustPromoteAt(promotionChoice.piece.type, promotionChoice.to.row, promotionChoice.piece.isGote)}
+        />
       )}
     </div>
   )

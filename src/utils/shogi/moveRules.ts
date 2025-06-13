@@ -100,7 +100,7 @@ const PIECE_MOVES: Record<PieceType, { moves?: MoveDirection[], range?: boolean,
       { row: 1, col: 0 },
     ],
   },
-  '成香': {
+  '杏': {
     moves: [
       { row: -1, col: -1 },
       { row: -1, col: 0 },
@@ -110,17 +110,7 @@ const PIECE_MOVES: Record<PieceType, { moves?: MoveDirection[], range?: boolean,
       { row: 1, col: 0 },
     ],
   },
-  '成桂': {
-    moves: [
-      { row: -1, col: -1 },
-      { row: -1, col: 0 },
-      { row: -1, col: 1 },
-      { row: 0, col: -1 },
-      { row: 0, col: 1 },
-      { row: 1, col: 0 },
-    ],
-  },
-  '成銀': {
+  '圭': {
     moves: [
       { row: -1, col: -1 },
       { row: -1, col: 0 },
@@ -153,7 +143,7 @@ const PIECE_MOVES: Record<PieceType, { moves?: MoveDirection[], range?: boolean,
     ],
     range: true,
   },
-  '龍': {
+  '竜': {
     moves: [
       { row: -1, col: 0 },
       { row: 1, col: 0 },
