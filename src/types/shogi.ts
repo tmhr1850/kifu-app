@@ -62,6 +62,8 @@ export interface GameState {
   handPieces: HandPieces;
   currentPlayer: Player;
   moveHistory: Move[];
+  positionHistory?: unknown; // Position history for repetition detection
+  resigned?: boolean; // Whether a player has resigned
 }
 
 // 移動可能な位置のリスト
