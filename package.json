@@ -11,6 +11,8 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@types/jszip": "^3.4.0",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.515.0",
     "next": "15.3.3",
     "react": "^19.0.0",

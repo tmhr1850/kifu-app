@@ -38,6 +38,7 @@ export interface KifuMove {
   player: Player;
   time?: number;
   comment?: string;
+  disambiguation?: string;
 }
 
 export interface KifuRecord {

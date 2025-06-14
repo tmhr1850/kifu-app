@@ -235,7 +235,7 @@ function getPieceTypeFromChar(char: string): string {
 }
 
 // 棋譜からゲームを作成（再生用）
-export function createGameFromKifu(_kifuRecord: KifuRecord): GameStateWrapper {
+export function createGameFromKifu(): GameStateWrapper {
   const gameState = createNewGame();
   
   const wrapper: GameStateWrapper = {
