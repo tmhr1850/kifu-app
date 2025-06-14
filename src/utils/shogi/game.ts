@@ -265,6 +265,29 @@ export function resign(gameState: GameState): GameState {
   };
 }
 
+// 手を戻す（待った）
+export function undoMove(gameState: GameState): GameState | null {
+  if (gameState.moveHistory.length === 0) {
+    return null; // 戻す手がない
+  }
+
+  // 初期状態から最後の手を除いて再構築
+  const newGameState = createNewGame();
+  const movesToReplay = gameState.moveHistory.slice(0, -1);
+
+  // 各手を再適用
+  let currentState = newGameState;
+  for (const move of movesToReplay) {
+    const nextState = makeMove(currentState, move);
+    if (!nextState) {
+      return null; // エラーが発生した場合
+    }
+    currentState = nextState;
+  }
+
+  return currentState;
+}
+
 // 持将棋判定
 export function checkImpasse(gameState: GameState): boolean {
   // 両玉の位置を探す

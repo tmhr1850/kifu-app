@@ -118,4 +118,55 @@ describe('DraggableBoard', () => {
     
     expect(mockOnMove).not.toHaveBeenCalled()
   })
+
+  it('should highlight last move squares when lastMove prop is provided', () => {
+    const lastMove = {
+      from: { row: 6, col: 4 },
+      to: { row: 5, col: 4 }
+    }
+    
+    render(<DraggableBoard lastMove={lastMove} />)
+    
+    const cells = document.querySelectorAll('.board-cell')
+    const highlightedCells = Array.from(cells).filter(cell => 
+      cell.classList.contains('ring-2') && cell.classList.contains('ring-blue-500')
+    )
+    
+    // Should highlight exactly 2 cells (from and to)
+    expect(highlightedCells).toHaveLength(2)
+  })
+
+  it('should not highlight any squares when lastMove is null', () => {
+    render(<DraggableBoard lastMove={null} />)
+    
+    const cells = document.querySelectorAll('.board-cell')
+    const highlightedCells = Array.from(cells).filter(cell => 
+      cell.classList.contains('ring-2') && cell.classList.contains('ring-blue-500')
+    )
+    
+    expect(highlightedCells).toHaveLength(0)
+  })
+
+  it('should update last move highlighting when lastMove prop changes', () => {
+    const { rerender } = render(<DraggableBoard lastMove={null} />)
+    
+    let cells = document.querySelectorAll('.board-cell')
+    let highlightedCells = Array.from(cells).filter(cell => 
+      cell.classList.contains('ring-2') && cell.classList.contains('ring-blue-500')
+    )
+    expect(highlightedCells).toHaveLength(0)
+    
+    const lastMove = {
+      from: { row: 2, col: 7 },
+      to: { row: 3, col: 7 }
+    }
+    
+    rerender(<DraggableBoard lastMove={lastMove} />)
+    
+    cells = document.querySelectorAll('.board-cell')
+    highlightedCells = Array.from(cells).filter(cell => 
+      cell.classList.contains('ring-2') && cell.classList.contains('ring-blue-500')
+    )
+    expect(highlightedCells).toHaveLength(2)
+  })
 })

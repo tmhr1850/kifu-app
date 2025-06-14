@@ -9,9 +9,10 @@ import { canPromotePiece, canPromoteAt, mustPromoteAt, promotePiece, getPieceDis
 
 interface DraggableBoardProps {
   onMove?: (from: Position, to: Position) => void
+  lastMove?: { from: Position; to: Position } | null
 }
 
-export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
+export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove, lastMove }) => {
   const [boardState, setBoardState] = useState(getInitialBoard())
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null)
   const [validMoves, setValidMoves] = useState<Position[]>([])
@@ -120,7 +121,7 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
     setValidMoves([])
     setDraggedPiece(null)
     isDragging.current = false
-  }, [draggedPiece, boardState, onMove, checkPromotion])
+  }, [draggedPiece, boardState, checkPromotion])
 
   const movePiece = useCallback((from: Position, to: Position, shouldPromote: boolean = false) => {
     const newBoard = boardState.map(row => [...row])
@@ -184,6 +185,14 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
 
   const isSelected = (row: number, col: number) => {
     return selectedPosition?.row === row && selectedPosition?.col === col
+  }
+
+  const isLastMoveSquare = (row: number, col: number) => {
+    if (!lastMove) return false
+    return (
+      (lastMove.from.row === row && lastMove.from.col === col) ||
+      (lastMove.to.row === row && lastMove.to.col === col)
+    )
   }
 
   useEffect(() => {
@@ -254,6 +263,7 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
                 const actualCol = 8 - colIndex
                 const isHighlight = isHighlighted(rowIndex, actualCol)
                 const isSelect = isSelected(rowIndex, actualCol)
+                const isLastMove = isLastMoveSquare(rowIndex, actualCol)
                 
                 return (
                   <div
@@ -263,6 +273,7 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove }) => {
                       transition-all duration-200
                       ${isHighlight ? 'bg-green-300 hover:bg-green-400' : 'hover:bg-amber-300'}
                       ${isSelect ? 'bg-amber-400' : ''}
+                      ${isLastMove ? 'ring-2 ring-blue-500 ring-inset' : ''}
                       ${!piece && !isHighlight ? 'cursor-default' : 'cursor-pointer'}
                     `}
                     onClick={() => {
