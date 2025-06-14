@@ -1,4 +1,4 @@
-import { GameState, Move, Player } from '@/types/shogi';
+import { GameState, Move, Player, PieceType } from '@/types/shogi';
 import { KifuRecord, KifuMove, GameInfo } from '@/types/kifu';
 import { createNewGame, makeMove, getGameStatus, undoMove } from './game';
 import { 
@@ -11,6 +11,17 @@ import {
 export interface GameWithKifu {
   gameState: GameState;
   kifuRecord: KifuRecord;
+}
+
+export interface GameStateWrapper {
+  game: {
+    board: (PieceType | null)[][];
+    captures: { sente: Map<PieceType, number>, gote: Map<PieceType, number> };
+    currentPlayer: 'sente' | 'gote';
+    makeMove: (from: number, to: number, promote: boolean) => GameStateWrapper['game'];
+    placePiece: (pieceType: PieceType, to: number) => GameStateWrapper['game'];
+    getPieceTypeFromKanji: (kanji: string) => PieceType | null;
+  };
 }
 
 // 新しいゲームを開始（棋譜記録付き）
@@ -221,4 +232,81 @@ function getPieceTypeFromChar(char: string): string {
   };
   
   return charMap[char] || 'FU';
+}
+
+// 棋譜からゲームを作成（再生用）
+export function createGameFromKifu(_kifuRecord: KifuRecord): GameStateWrapper {
+  const gameState = createNewGame();
+  
+  const wrapper: GameStateWrapper = {
+    game: {
+      board: gameState.board,
+      captures: {
+        sente: gameState.handPieces[Player.SENTE],
+        gote: gameState.handPieces[Player.GOTE]
+      },
+      currentPlayer: gameState.currentPlayer === Player.SENTE ? 'sente' : 'gote',
+      makeMove: (from: number, to: number, promote: boolean) => {
+        const fromPos = from >= 0 ? { row: Math.floor(from / 9), col: from % 9 } : null;
+        const toPos = { row: Math.floor(to / 9), col: to % 9 };
+        
+        if (fromPos) {
+          const piece = gameState.board[fromPos.row][fromPos.col];
+          if (piece) {
+            const move: Move = {
+              from: fromPos,
+              to: toPos,
+              piece,
+              promote
+            };
+            const newState = makeMove(gameState, move);
+            if (newState) {
+              Object.assign(gameState, newState);
+            }
+          }
+        }
+        
+        wrapper.game.board = gameState.board;
+        wrapper.game.captures = {
+          sente: gameState.handPieces[Player.SENTE],
+          gote: gameState.handPieces[Player.GOTE]
+        };
+        wrapper.game.currentPlayer = gameState.currentPlayer === Player.SENTE ? 'sente' : 'gote';
+        
+        return wrapper.game;
+      },
+      placePiece: (pieceType: PieceType, to: number) => {
+        const toPos = { row: Math.floor(to / 9), col: to % 9 };
+        const move: Move = {
+          from: null,
+          to: toPos,
+          piece: {
+            type: pieceType,
+            player: gameState.currentPlayer
+          },
+          promote: false
+        };
+        
+        const newState = makeMove(gameState, move);
+        if (newState) {
+          Object.assign(gameState, newState);
+        }
+        
+        wrapper.game.board = gameState.board;
+        wrapper.game.captures = {
+          sente: gameState.handPieces[Player.SENTE],
+          gote: gameState.handPieces[Player.GOTE]
+        };
+        wrapper.game.currentPlayer = gameState.currentPlayer === Player.SENTE ? 'sente' : 'gote';
+        
+        return wrapper.game;
+      },
+      getPieceTypeFromKanji: (kanji: string): PieceType | null => {
+        const pieceTypeStr = getPieceTypeFromChar(kanji);
+        return PieceType[pieceTypeStr as keyof typeof PieceType] || null;
+      }
+    }
+  };
+  
+  return wrapper;
 }
