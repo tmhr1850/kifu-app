@@ -50,7 +50,7 @@ export function ki2ToMove(ki2Move: string, player: Player, prevMove: KifuMove | 
   // Remove player symbol if present
   const moveWithoutSymbol = ki2Move.replace(/^[☗☖]/, '');
   
-  const match = moveWithoutSymbol.match(/^(同|[１-９][一-九])(.+)$/u);
+  const match = moveWithoutSymbol.match(/^(同|[１-９][一二三四五六七八九])(.+)$/u);
   if (!match) {
     throw new Error(`Invalid KI2 move format: ${ki2Move}`);
   }

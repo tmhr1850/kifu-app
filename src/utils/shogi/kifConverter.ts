@@ -40,7 +40,7 @@ export function moveToKif(move: KifuMove, moveNumber: number): string {
 }
 
 export function kifToMove(kifMove: string, player: Player): KifuMove {
-  const moveMatch = kifMove.match(/^\s*\d+\s+([１-９])([一-九])([^\s(]+)(\(.+\))?/);
+  const moveMatch = kifMove.match(/^\s*\d+\s+([１-９])([一二三四五六七八九])([^\s(]+)(\(.+\))?/);
   if (!moveMatch) {
     throw new Error(`Invalid KIF move format: ${kifMove}`);
   }
