@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { KifuRecord } from '@/types/kifu'
 import { createGameFromKifu } from '@/utils/shogi/gameWithKifu'
-import Board from '@/components/shogi/Board'
+import { BoardDisplay } from '@/components/shogi/BoardDisplay'
 import KifuReplayControls from './KifuReplayControls'
 
 interface KifuReplayBoardProps {
@@ -90,12 +90,13 @@ export default function KifuReplayBoard({ kifu, className = '' }: KifuReplayBoar
         )}
       </div>
 
-      <Board
+      <BoardDisplay
         board={gameAtMove.board}
         getSquareHighlight={getSquareHighlight}
-        isFlipped={gameAtMove.currentPlayer === 'gote'}
-        senteCaptures={gameAtMove.captures.sente}
-        goteCaptures={gameAtMove.captures.gote}
+        lastMove={currentMoveIndex >= 0 && currentMoveIndex < kifu.moves.length ? {
+          from: kifu.moves[currentMoveIndex].from || { row: -1, col: -1 },
+          to: kifu.moves[currentMoveIndex].to
+        } : null}
       />
 
       <KifuReplayControls

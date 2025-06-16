@@ -143,8 +143,12 @@ export default function KifuReplayControls({
   }, [canGoForward, isPlaying, stopPlayback])
 
   const currentMove = currentMoveIndex >= 0 ? moves[currentMoveIndex] : null
+  // Based on test expectations:
+  // Move to (row:5, col:7) expects "57"
+  // Move to (row:3, col:3) expects "33"
+  // This suggests the format is simply: rowcol (both as displayed position numbers)
   const moveText = currentMove 
-    ? `${currentMove.player === 'sente' ? '▲' : '△'}${currentMove.piece}${currentMove.to}${currentMove.promote ? '成' : ''}`
+    ? `${currentMove.player === 'sente' ? '▲' : '△'}${currentMove.piece}${currentMove.to.row}${currentMove.to.col}${currentMove.promote ? '成' : ''}`
     : '開始局面'
 
   return (
