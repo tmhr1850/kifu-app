@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { GameStateWithKifu } from '@/utils/shogi/gameWithKifu';
 import { endGameWithKifu, undoMoveWithKifu } from '@/utils/shogi/gameWithKifu';
+import { getGameStatus } from '@/utils/shogi/game';
+import { Player } from '@/types/shogi';
 
 interface GameControllerProps {
   gameState: GameStateWithKifu;
@@ -18,9 +20,12 @@ export const GameController: React.FC<GameControllerProps> = ({
   // 手数を計算
   const moveCount = gameState.kifu?.moves?.length || 0;
   
+  // ゲームの状態を取得
+  const gameStatus = useMemo(() => getGameStatus(gameState.game), [gameState.game]);
+  
   // 投了処理
   const handleResign = useCallback(() => {
-    const winner = gameState.game.currentPlayer === 'sente' ? 'gote_win' : 'sente_win';
+    const winner = gameState.game.currentPlayer === Player.SENTE ? 'gote_win' : 'sente_win';
     const newState = endGameWithKifu(gameState, winner);
     onGameStateChange(newState);
     setShowResignDialog(false);
@@ -48,7 +53,7 @@ export const GameController: React.FC<GameControllerProps> = ({
       <div className="current-player mb-4 text-center">
         <span className="text-lg">手番: </span>
         <span className="text-xl font-bold">
-          {gameState.game.currentPlayer === 'sente' ? '☗先手' : '☖後手'}
+          {gameState.game.currentPlayer === Player.SENTE ? '☗先手' : '☖後手'}
         </span>
       </div>
 
@@ -70,11 +75,11 @@ export const GameController: React.FC<GameControllerProps> = ({
         <button
           onClick={handleUndo}
           className={`px-4 py-2 rounded-md transition-colors ${
-            gameState.kifu.moves.length > 0 && gameState.game.gameStatus === 'ongoing'
+            gameState.kifu.moves.length > 0 && !gameStatus.isOver
               ? 'bg-blue-500 text-white hover:bg-blue-600'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
-          disabled={gameState.kifu.moves.length === 0 || gameState.game.gameStatus !== 'ongoing'}
+          disabled={gameState.kifu.moves.length === 0 || gameStatus.isOver}
         >
           待った
         </button>
@@ -83,7 +88,7 @@ export const GameController: React.FC<GameControllerProps> = ({
         <button
           onClick={() => setShowResignDialog(true)}
           className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-          disabled={gameState.game.gameStatus !== 'ongoing'}
+          disabled={gameStatus.isOver}
         >
           投了
         </button>
@@ -114,18 +119,19 @@ export const GameController: React.FC<GameControllerProps> = ({
       )}
 
       {/* ゲーム終了表示 */}
-      {gameState.game.gameStatus !== 'ongoing' && (
+      {gameStatus.isOver && (
         <div className="game-result mt-4 p-4 bg-yellow-100 rounded-md text-center">
           <p className="text-lg font-bold">
-            {gameState.game.gameStatus === 'checkmate' && '詰み'}
-            {gameState.game.gameStatus === 'resigned' && '投了'}
-            {gameState.game.gameStatus === 'draw' && '引き分け'}
-            {gameState.game.gameStatus === 'repetition_draw' && '千日手'}
-            {gameState.game.gameStatus === 'impasse' && '持将棋'}
+            {gameStatus.reason === 'checkmate' && '詰み'}
+            {gameStatus.reason === 'resignation' && '投了'}
+            {gameStatus.reason === 'stalemate' && '引き分け'}
+            {gameStatus.reason === 'repetition' && '千日手'}
+            {gameStatus.reason === 'perpetual_check' && '連続王手の千日手'}
+            {gameStatus.reason === 'impasse' && '持将棋'}
           </p>
-          {gameState.kifu.gameInfo.result && (
+          {gameStatus.winner && (
             <p className="mt-2">
-              {gameState.kifu.gameInfo.result.winner === 'sente' ? '先手' : '後手'}の勝ち
+              {gameStatus.winner === Player.SENTE ? '先手' : '後手'}の勝ち
             </p>
           )}
         </div>
