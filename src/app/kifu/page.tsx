@@ -7,6 +7,7 @@ import { KifuCard } from '@/components/kifu/KifuCard';
 import { ConfirmDialog } from '@/components/kifu/ConfirmDialog';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 export default function KifuListPage() {
   const router = useRouter();
@@ -96,7 +97,8 @@ export default function KifuListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">保存済み棋譜一覧</h1>
@@ -201,6 +203,7 @@ export default function KifuListPage() {
         cancelText="キャンセル"
       />
     </div>
+    </ProtectedRoute>
   );
 }
 
