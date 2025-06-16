@@ -132,10 +132,11 @@ export function endGameWithKifu(
   saveKifuRecord(updatedKifuRecord);
   
   // 更新されたゲーム状態を返す
+  // 投了の場合はresignedフラグを立てる
+  const isResignation = result === 'sente_win' || result === 'gote_win';
   const updatedGameState = {
     ...gameWithKifu.game,
-    gameStatus: 'resigned' as const,
-    resigned: true
+    resigned: isResignation
   };
   
   return {
