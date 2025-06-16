@@ -14,7 +14,7 @@ export function detectKifuFormat(content: string): KifuFormat {
   }
   
   // Check for KI2 format
-  if (lines.some(line => line.match(/^[☗☖]?(同|[１-９][一二三四五六七八九])/))) {
+  if (lines.some(line => line.match(/^[☗☖]?[１-９七八六]/))) {
     return 'ki2';
   }
   
