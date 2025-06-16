@@ -145,7 +145,7 @@ export default function KifuReplayControls({
 
   const currentMove = currentMoveIndex >= 0 ? moves[currentMoveIndex] : null
   const moveText = currentMove 
-    ? `${currentMove.player === Player.SENTE ? '▲' : '△'}${currentMove.piece}${currentMove.to}${currentMove.promote ? '成' : ''}`
+    ? `${currentMove.player === Player.SENTE ? '▲' : '△'}${currentMove.piece}${currentMove.to.row}${currentMove.to.col}${currentMove.promote ? '成' : ''}`
     : '開始局面'
 
   return (
