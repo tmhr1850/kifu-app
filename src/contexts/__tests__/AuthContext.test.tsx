@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor } from '@testing-library/react'
 import { AuthProvider, useAuth } from '../AuthContext'
 import { supabase } from '@/lib/supabase'
 
@@ -21,7 +21,17 @@ jest.mock('@/lib/supabase', () => ({
           }
         }
       }))
-    }
+    },
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          single: jest.fn()
+        }))
+      })),
+      update: jest.fn(() => ({
+        eq: jest.fn()
+      }))
+    }))
   }
 }))
 
@@ -48,6 +58,7 @@ describe('AuthContext', () => {
 
       expect(result.current.user).toBeNull()
       expect(result.current.session).toBeNull()
+      expect(result.current.profile).toBeNull()
     })
 
     it('既存のセッションがある場合、userとsessionが設定されること', async () => {
@@ -177,6 +188,96 @@ describe('AuthContext', () => {
       
       expect(supabase.auth.updateUser).toHaveBeenCalledWith({
         password: 'newPassword123'
+      })
+      expect(response.error).toBeNull()
+    })
+
+    it('getProfileが正しく動作すること', async () => {
+      const mockProfile = {
+        id: '123',
+        email: 'test@example.com',
+        username: 'testuser',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      const mockSelect = jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({ data: mockProfile, error: null })
+        })
+      })
+
+      ;(supabase.from as jest.Mock).mockReturnValue({
+        select: mockSelect
+      })
+
+      // ユーザーがログインしている状態をシミュレート
+      const { result } = renderHook(() => useAuth(), { wrapper })
+      
+      // userを設定するため、セッションを設定
+      const mockSession = {
+        user: { id: '123', email: 'test@example.com' },
+        access_token: 'token'
+      }
+      ;(supabase.auth.getSession as jest.Mock).mockResolvedValue({
+        data: { session: mockSession }
+      })
+
+      // 再レンダリング
+      const { rerender } = renderHook(() => useAuth(), { wrapper })
+      rerender()
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      const response = await result.current.getProfile()
+      
+      expect(response.data).toEqual(mockProfile)
+      expect(response.error).toBeNull()
+    })
+
+    it('updateProfileが正しく動作すること', async () => {
+      const updateData = {
+        username: 'newusername',
+        full_name: 'New Name',
+        bio: 'New bio'
+      }
+
+      const mockUpdate = jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({ error: null })
+      })
+
+      ;(supabase.from as jest.Mock).mockReturnValue({
+        update: mockUpdate,
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({ data: null, error: null })
+          })
+        })
+      })
+
+      // ユーザーがログインしている状態をシミュレート
+      const mockSession = {
+        user: { id: '123', email: 'test@example.com' },
+        access_token: 'token'
+      }
+      ;(supabase.auth.getSession as jest.Mock).mockResolvedValue({
+        data: { session: mockSession }
+      })
+
+      const { result } = renderHook(() => useAuth(), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+        expect(result.current.user).toBeTruthy()
+      })
+
+      const response = await result.current.updateProfile(updateData)
+      
+      expect(mockUpdate).toHaveBeenCalledWith({
+        ...updateData,
+        updated_at: expect.any(String)
       })
       expect(response.error).toBeNull()
     })

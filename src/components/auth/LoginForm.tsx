@@ -10,7 +10,7 @@ export function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, signInWithMagicLink } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,7 +35,6 @@ export function LoginForm() {
     setError(null)
     setLoading(true)
 
-    const { signInWithMagicLink } = useAuth()
     const { error } = await signInWithMagicLink(email)
 
     if (error) {
