@@ -15,7 +15,7 @@ describe('undoMove', () => {
     const move = {
       from: { row: 6, col: 4 },
       to: { row: 5, col: 4 },
-      piece: { type: PieceType.FU, owner: Player.SENTE },
+      piece: { type: PieceType.FU, player: Player.SENTE },
       promote: false
     };
     
@@ -39,7 +39,7 @@ describe('undoMove', () => {
     const move1 = {
       from: { row: 6, col: 4 },
       to: { row: 5, col: 4 },
-      piece: { type: PieceType.FU, owner: Player.SENTE },
+      piece: { type: PieceType.FU, player: Player.SENTE },
       promote: false
     };
     const afterMove1 = makeMove(gameState, move1);
@@ -48,7 +48,7 @@ describe('undoMove', () => {
     const move2 = {
       from: { row: 2, col: 4 },
       to: { row: 3, col: 4 },
-      piece: { type: PieceType.FU, owner: Player.GOTE },
+      piece: { type: PieceType.FU, player: Player.GOTE },
       promote: false
     };
     const afterMove2 = makeMove(afterMove1!, move2);
@@ -75,13 +75,13 @@ describe('undoMove', () => {
     
     // Set up a capture scenario
     // Place a gote pawn where sente can capture it
-    gameState.board[5][4] = { type: PieceType.FU, owner: Player.GOTE };
+    gameState.board[5][4] = { type: PieceType.FU, player: Player.GOTE };
     
-    // Make a capturing move
+    // Make a capturing move (pawn moves straight forward)
     const captureMove = {
-      from: { row: 6, col: 3 },
+      from: { row: 6, col: 4 },
       to: { row: 5, col: 4 },
-      piece: { type: PieceType.FU, owner: Player.SENTE },
+      piece: { type: PieceType.FU, player: Player.SENTE },
       promote: false
     };
     
@@ -89,41 +89,43 @@ describe('undoMove', () => {
     expect(afterCapture).not.toBeNull();
     
     // Check that piece was captured
-    expect(afterCapture!.handPieces.sente.FU).toBe(1);
+    expect(afterCapture!.handPieces[Player.SENTE].get(PieceType.FU) || 0).toBe(1);
     
     // Undo the capture
     const afterUndo = undoMove(afterCapture!);
     expect(afterUndo).not.toBeNull();
     
     // Check that captured piece is restored
-    expect(afterUndo!.board[5][4]).toEqual({ type: PieceType.FU, owner: Player.GOTE });
-    expect(afterUndo!.handPieces.sente.FU).toBe(0);
+    expect(afterUndo!.board[5][4]).toEqual({ type: PieceType.FU, player: Player.GOTE });
+    expect(afterUndo!.handPieces[Player.SENTE].get(PieceType.FU) || 0).toBe(0);
   });
 
   it('should handle promotion correctly when undoing', () => {
     const gameState = createNewGame();
     
-    // Move a pawn to promotion zone
-    gameState.board[3][4] = { type: PieceType.FU, owner: Player.SENTE };
-    gameState.board[6][4] = null;
+    // Use a silver instead of pawn to avoid nifu (double-pawn) rule
+    // Move silver to just before promotion zone
+    gameState.board[3][2] = { type: PieceType.GIN, player: Player.SENTE };
+    gameState.board[8][2] = null; // Remove silver from original position
+    gameState.board[2][3] = null; // Clear the destination square (remove GOTE pawn)
     
     const promoteMove = {
-      from: { row: 3, col: 4 },
-      to: { row: 2, col: 4 },
-      piece: { type: PieceType.FU, owner: Player.SENTE },
+      from: { row: 3, col: 2 },
+      to: { row: 2, col: 3 }, // Silver can move diagonally
+      piece: { type: PieceType.GIN, player: Player.SENTE },
       promote: true
     };
     
     const afterPromotion = makeMove(gameState, promoteMove);
     expect(afterPromotion).not.toBeNull();
-    expect(afterPromotion!.board[2][4]?.type).toBe(PieceType.TO);
+    expect(afterPromotion!.board[2][3]?.type).toBe(PieceType.NGIN);
     
     // Undo the promotion
     const afterUndo = undoMove(afterPromotion!);
     expect(afterUndo).not.toBeNull();
     
     // Check that the piece is back as unpromoted
-    expect(afterUndo!.board[3][4]).toEqual({ type: PieceType.FU, owner: Player.SENTE });
-    expect(afterUndo!.board[2][4]).toBeNull();
+    expect(afterUndo!.board[3][2]).toEqual({ type: PieceType.GIN, player: Player.SENTE });
+    expect(afterUndo!.board[2][3]).toBeNull();
   });
 });
