@@ -149,7 +149,7 @@ export function kifFormatToGame(kif: string): { gameInfo: GameInfo; moves: KifuM
   };
   const moves: KifuMove[] = [];
   
-  let currentPlayer: Player = 'sente';
+  let currentPlayer: Player = Player.SENTE;
   
   for (const line of lines) {
     if (line.startsWith('#') || line.includes('手数----指手')) {
@@ -195,7 +195,7 @@ export function kifFormatToGame(kif: string): { gameInfo: GameInfo; moves: KifuM
     } else if (line.match(/^\s*\d+\s+/)) {
       const move = kifToMove(line, currentPlayer);
       moves.push(move);
-      currentPlayer = currentPlayer === 'sente' ? 'gote' : 'sente';
+      currentPlayer = currentPlayer === Player.SENTE ? Player.GOTE : Player.SENTE;
     }
   }
   

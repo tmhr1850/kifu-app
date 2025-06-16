@@ -6,6 +6,7 @@ import {
   ki2FormatToGame
 } from '../ki2Converter';
 import { KifuMove, KifuRecord } from '@/types/kifu';
+import { Player } from '@/types/shogi';
 
 describe('KI2 Converter', () => {
   describe('moveToKi2', () => {
@@ -14,7 +15,7 @@ describe('KI2 Converter', () => {
         from: { row: 6, col: 2 },
         to: { row: 5, col: 2 },
         piece: '歩',
-        player: 'sente'
+        player: Player.SENTE
       };
       expect(moveToKi2(move, null)).toBe('☗７六歩');
     });
@@ -24,13 +25,13 @@ describe('KI2 Converter', () => {
         from: { row: 7, col: 1 },
         to: { row: 5, col: 2 },
         piece: '角',
-        player: 'sente'
+        player: Player.SENTE
       };
       const prevMove: KifuMove = {
         from: { row: 6, col: 2 },
         to: { row: 5, col: 2 },
         piece: '歩',
-        player: 'gote'
+        player: Player.GOTE
       };
       expect(moveToKi2(move, prevMove)).toBe('☗同角');
     });
@@ -39,7 +40,7 @@ describe('KI2 Converter', () => {
       const move: KifuMove = {
         to: { row: 4, col: 4 },
         piece: '歩',
-        player: 'gote'
+        player: Player.GOTE
       };
       expect(moveToKi2(move, null)).toBe('☖５五歩打');
     });
@@ -50,7 +51,7 @@ describe('KI2 Converter', () => {
         to: { row: 0, col: 7 },
         piece: '銀',
         promote: true,
-        player: 'sente'
+        player: Player.SENTE
       };
       expect(moveToKi2(move, null)).toBe('☗２一銀成');
     });
@@ -60,7 +61,7 @@ describe('KI2 Converter', () => {
         from: { row: 6, col: 1 },
         to: { row: 5, col: 2 },
         piece: '銀',
-        player: 'sente',
+        player: Player.SENTE,
         disambiguation: '右'
       };
       expect(moveToKi2(move, null)).toBe('☗７六銀右');
@@ -73,9 +74,9 @@ describe('KI2 Converter', () => {
       const expected: KifuMove = {
         to: { row: 5, col: 2 },
         piece: '歩',
-        player: 'sente'
+        player: Player.SENTE
       };
-      expect(ki2ToMove(ki2Move, 'sente', null)).toMatchObject(expected);
+      expect(ki2ToMove(ki2Move, Player.SENTE, null)).toMatchObject(expected);
     });
 
     it('should parse a move with same destination', () => {
@@ -84,12 +85,12 @@ describe('KI2 Converter', () => {
         from: { row: 6, col: 2 },
         to: { row: 5, col: 2 },
         piece: '歩',
-        player: 'gote'
+        player: Player.GOTE
       };
       const expected: KifuMove = {
         to: { row: 5, col: 2 },
         piece: '角',
-        player: 'sente'
+        player: Player.SENTE
       };
       expect(ki2ToMove(ki2Move, 'sente', prevMove)).toMatchObject(expected);
     });
@@ -99,9 +100,9 @@ describe('KI2 Converter', () => {
       const expected: KifuMove = {
         to: { row: 4, col: 4 },
         piece: '歩',
-        player: 'gote'
+        player: Player.GOTE
       };
-      expect(ki2ToMove(ki2Move, 'gote', null)).toMatchObject(expected);
+      expect(ki2ToMove(ki2Move, Player.GOTE, null)).toMatchObject(expected);
     });
 
     it('should parse a promotion move', () => {
@@ -110,9 +111,9 @@ describe('KI2 Converter', () => {
         to: { row: 0, col: 7 },
         piece: '銀',
         promote: true,
-        player: 'sente'
+        player: Player.SENTE
       };
-      expect(ki2ToMove(ki2Move, 'sente', null)).toMatchObject(expected);
+      expect(ki2ToMove(ki2Move, Player.SENTE, null)).toMatchObject(expected);
     });
   });
 
@@ -131,13 +132,13 @@ describe('KI2 Converter', () => {
             from: { row: 6, col: 2 },
             to: { row: 5, col: 2 },
             piece: '歩',
-            player: 'sente'
+            player: Player.SENTE
           },
           {
             from: { row: 2, col: 6 },
             to: { row: 3, col: 6 },
             piece: '歩',
-            player: 'gote'
+            player: Player.GOTE
           }
         ],
         createdAt: '2024-01-15T10:00:00Z',

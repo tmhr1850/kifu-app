@@ -8,6 +8,7 @@ import {
   exportKifToText
 } from '../storageService';
 import { KifuRecord } from '@/types/kifu';
+import { Player } from '@/types/shogi';
 
 // Mock localStorage
 const localStorageMock = {
@@ -221,7 +222,7 @@ describe('Storage Service', () => {
             from: { row: 6, col: 6 },
             to: { row: 5, col: 6 },
             piece: '歩',
-            player: 'sente'
+            player: Player.SENTE
           }
         ],
         createdAt: '2024-01-15T10:00:00Z',

@@ -64,7 +64,7 @@ describe('Game with Kifu', () => {
         from: { row: 6, col: 6 },
         to: { row: 5, col: 6 },
         piece: '歩',
-        player: 'sente'
+        player: Player.SENTE
       });
       expect(mockedStorageService.saveKifuRecord).toHaveBeenCalledTimes(2); // Once on create, once on move
     });
@@ -128,13 +128,13 @@ describe('Game with Kifu', () => {
             from: { row: 6, col: 6 },
             to: { row: 5, col: 6 },
             piece: '歩',
-            player: 'sente' as const
+            player: Player.SENTE
           },
           {
             from: { row: 2, col: 2 },
             to: { row: 3, col: 2 },
             piece: '歩',
-            player: 'gote' as const
+            player: Player.GOTE
           }
         ],
         createdAt: '2024-01-15T10:00:00Z',

@@ -26,8 +26,8 @@ describe('GameController', () => {
       game: {
         board: Array(9).fill(null).map(() => Array(9).fill(null)),
         handPieces: {
-          sente: { FU: 0, KYO: 0, KEI: 0, GIN: 0, KIN: 0, KAKU: 0, HI: 0 },
-          gote: { FU: 0, KYO: 0, KEI: 0, GIN: 0, KIN: 0, KAKU: 0, HI: 0 }
+          [Player.SENTE]: { FU: 0, KYO: 0, KEI: 0, GIN: 0, KIN: 0, KAKU: 0, HI: 0 },
+          [Player.GOTE]: { FU: 0, KYO: 0, KEI: 0, GIN: 0, KIN: 0, KAKU: 0, HI: 0 }
         },
         currentPlayer: Player.SENTE,
         moveHistory: [],
@@ -155,7 +155,7 @@ describe('GameController', () => {
           {
             moveNumber: 1,
             notation: '７六歩',
-            player: 'sente',
+            player: Player.SENTE,
             timestamp: new Date().toISOString()
           }
         ]
@@ -182,7 +182,7 @@ describe('GameController', () => {
           {
             moveNumber: 1,
             notation: '７六歩',
-            player: 'sente',
+            player: Player.SENTE,
             timestamp: new Date().toISOString()
           }
         ]
@@ -214,7 +214,7 @@ describe('GameController', () => {
         gameInfo: {
           ...mockGameState.kifu.gameInfo,
           result: {
-            winner: 'sente' as const,
+            winner: Player.SENTE,
             reason: 'resign'
           }
         }

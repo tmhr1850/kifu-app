@@ -62,7 +62,7 @@ export function OnlineGameBoard({ roomId }: OnlineGameBoardProps) {
           gameState={gameState}
           onMove={makeMove}
           disabled={!isMyTurn || gameState.onlineStatus !== 'playing'}
-          orientation={myColor === Player.GOTE ? 'gote' : 'sente'}
+          orientation={myColor === Player.GOTE ? Player.GOTE : Player.SENTE}
         />
       </div>
 

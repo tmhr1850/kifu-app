@@ -1,4 +1,4 @@
-import { BoardState, PieceType } from '@/types/shogi';
+import { BoardState, PieceType, Player } from '@/types/shogi';
 
 export interface ImageGeneratorOptions {
   width: number;
@@ -124,7 +124,7 @@ export function generateBoardImage(
         const y = startY + row * cellSize + cellSize / 2;
         
         // Draw piece background (optional)
-        ctx.fillStyle = piece.player === 'sente' ? '#ffffff' : '#cccccc';
+        ctx.fillStyle = piece.player === Player.SENTE ? '#ffffff' : '#cccccc';
         ctx.beginPath();
         ctx.arc(x, y, cellSize * 0.4, 0, 2 * Math.PI);
         ctx.fill();
@@ -134,7 +134,7 @@ export function generateBoardImage(
         const text = pieceKanji[piece.type] || piece.type;
         
         // For gote pieces, draw upside down
-        if (piece.player === 'gote') {
+        if (piece.player === Player.GOTE) {
           ctx.save();
           ctx.translate(x, y);
           ctx.rotate(Math.PI);

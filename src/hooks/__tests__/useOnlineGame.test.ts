@@ -13,8 +13,8 @@ jest.mock('@/contexts/SocketContext', () => ({
     currentRoom: {
       id: 'test-room',
       players: [
-        { id: 'user1', name: 'Player 1', color: 'sente' },
-        { id: 'user2', name: 'Player 2', color: 'gote' }
+        { id: 'user1', name: 'Player 1', color: Player.SENTE },
+        { id: 'user2', name: 'Player 2', color: Player.GOTE }
       ]
     },
     makeMove: jest.fn(),
@@ -53,8 +53,8 @@ describe('useOnlineGame', () => {
           room: {
             id: 'test-room',
             players: [
-              { id: 'user1', name: 'Player 1', color: 'sente' },
-              { id: 'user2', name: 'Player 2', color: 'gote' }
+              { id: 'user1', name: 'Player 1', color: Player.SENTE },
+              { id: 'user2', name: 'Player 2', color: Player.GOTE }
             ]
           }
         })

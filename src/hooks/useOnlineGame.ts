@@ -25,7 +25,7 @@ export function useOnlineGame() {
       const opponent = room.players.find((p) => p.id !== user.id)
       
       if (player && opponent) {
-        const color = player.color === 'sente' ? Player.SENTE : Player.GOTE
+        const color = player.color === Player.SENTE ? Player.SENTE : Player.GOTE
         setMyColor(color)
         setOpponentInfo({ id: opponent.id, name: opponent.name })
         

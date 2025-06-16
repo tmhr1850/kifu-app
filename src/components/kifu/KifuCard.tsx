@@ -5,6 +5,7 @@ import { KifuMetadata } from '@/types/kifu';
 import { loadKifuRecord } from '@/utils/shogi/storageService';
 import { Board } from '@/utils/shogi/board';
 import { executeMove } from '@/utils/shogi/game';
+import { Player } from '@/types/shogi';
 
 interface KifuCardProps {
   kifu: KifuMetadata;
@@ -76,7 +77,7 @@ export const KifuCard: React.FC<KifuCardProps> = ({
         if (piece) {
           const x = (8 - col) * cellSize + cellSize / 2;
           const y = row * cellSize + cellSize / 2;
-          const color = piece.owner === 'sente' ? '#000' : '#800';
+          const color = piece.owner === Player.SENTE ? '#000' : '#800';
           
           svg += `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" 
                    font-size="14" fill="${color}" font-weight="bold">

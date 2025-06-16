@@ -6,6 +6,7 @@ import {
   csaFormatToGame
 } from '../csaConverter';
 import { KifuMove, KifuRecord } from '@/types/kifu';
+import { Player } from '@/types/shogi';
 
 describe('CSA Converter', () => {
   describe('moveToCsa', () => {
@@ -14,7 +15,7 @@ describe('CSA Converter', () => {
         from: { row: 6, col: 2 },
         to: { row: 5, col: 2 },
         piece: '歩',
-        player: 'sente'
+        player: Player.SENTE
       };
       expect(moveToCsa(move)).toBe('+7776FU');
     });
@@ -24,7 +25,7 @@ describe('CSA Converter', () => {
         from: { row: 2, col: 6 },
         to: { row: 3, col: 6 },
         piece: '歩',
-        player: 'gote'
+        player: Player.GOTE
       };
       expect(moveToCsa(move)).toBe('-3334FU');
     });
@@ -33,7 +34,7 @@ describe('CSA Converter', () => {
       const move: KifuMove = {
         to: { row: 4, col: 4 },
         piece: '歩',
-        player: 'sente'
+        player: Player.SENTE
       };
       expect(moveToCsa(move)).toBe('+0055FU');
     });
@@ -44,19 +45,19 @@ describe('CSA Converter', () => {
         to: { row: 0, col: 7 },
         piece: '銀',
         promote: true,
-        player: 'sente'
+        player: Player.SENTE
       };
       expect(moveToCsa(move)).toBe('+2221GI');
     });
 
     it('should handle special pieces', () => {
       const moves: KifuMove[] = [
-        { from: { row: 8, col: 4 }, to: { row: 7, col: 4 }, piece: '玉', player: 'sente' },
-        { from: { row: 0, col: 3 }, to: { row: 1, col: 3 }, piece: '金', player: 'gote' },
-        { from: { row: 7, col: 7 }, to: { row: 5, col: 5 }, piece: '角', player: 'sente' },
-        { from: { row: 7, col: 7 }, to: { row: 1, col: 3 }, piece: '飛', player: 'sente' },
-        { from: { row: 8, col: 7 }, to: { row: 6, col: 6 }, piece: '桂', player: 'sente' },
-        { from: { row: 8, col: 8 }, to: { row: 5, col: 5 }, piece: '香', player: 'sente' }
+        { from: { row: 8, col: 4 }, to: { row: 7, col: 4 }, piece: '玉', player: Player.SENTE },
+        { from: { row: 0, col: 3 }, to: { row: 1, col: 3 }, piece: '金', player: Player.GOTE },
+        { from: { row: 7, col: 7 }, to: { row: 5, col: 5 }, piece: '角', player: Player.SENTE },
+        { from: { row: 7, col: 7 }, to: { row: 1, col: 3 }, piece: '飛', player: Player.SENTE },
+        { from: { row: 8, col: 7 }, to: { row: 6, col: 6 }, piece: '桂', player: Player.SENTE },
+        { from: { row: 8, col: 8 }, to: { row: 5, col: 5 }, piece: '香', player: Player.SENTE }
       ];
       
       expect(moveToCsa(moves[0])).toBe('+5958OU');
@@ -75,7 +76,7 @@ describe('CSA Converter', () => {
         from: { row: 6, col: 2 },
         to: { row: 5, col: 2 },
         piece: '歩',
-        player: 'sente'
+        player: Player.SENTE
       };
       expect(csaToMove(csaMove)).toEqual(expected);
     });
@@ -86,7 +87,7 @@ describe('CSA Converter', () => {
         from: { row: 2, col: 6 },
         to: { row: 3, col: 6 },
         piece: '歩',
-        player: 'gote'
+        player: Player.GOTE
       };
       expect(csaToMove(csaMove)).toEqual(expected);
     });
@@ -96,19 +97,19 @@ describe('CSA Converter', () => {
       const expected: KifuMove = {
         to: { row: 4, col: 4 },
         piece: '歩',
-        player: 'sente'
+        player: Player.SENTE
       };
       expect(csaToMove(csaMove)).toEqual(expected);
     });
 
     it('should parse promoted pieces', () => {
       const moves = [
-        { csa: '+7776TO', expected: { piece: 'と', from: { row: 6, col: 2 }, to: { row: 5, col: 2 }, player: 'sente' as const } },
-        { csa: '-3334NY', expected: { piece: '成香', from: { row: 2, col: 6 }, to: { row: 3, col: 6 }, player: 'gote' as const } },
-        { csa: '+2837NK', expected: { piece: '成桂', from: { row: 7, col: 7 }, to: { row: 6, col: 6 }, player: 'sente' as const } },
-        { csa: '-2122NG', expected: { piece: '成銀', from: { row: 0, col: 7 }, to: { row: 1, col: 7 }, player: 'gote' as const } },
-        { csa: '+2846UM', expected: { piece: '馬', from: { row: 7, col: 7 }, to: { row: 5, col: 5 }, player: 'sente' as const } },
-        { csa: '+2862RY', expected: { piece: '龍', from: { row: 7, col: 7 }, to: { row: 1, col: 3 }, player: 'sente' as const } }
+        { csa: '+7776TO', expected: { piece: 'と', from: { row: 6, col: 2 }, to: { row: 5, col: 2 }, player: Player.SENTE } },
+        { csa: '-3334NY', expected: { piece: '成香', from: { row: 2, col: 6 }, to: { row: 3, col: 6 }, player: Player.GOTE } },
+        { csa: '+2837NK', expected: { piece: '成桂', from: { row: 7, col: 7 }, to: { row: 6, col: 6 }, player: Player.SENTE } },
+        { csa: '-2122NG', expected: { piece: '成銀', from: { row: 0, col: 7 }, to: { row: 1, col: 7 }, player: Player.GOTE } },
+        { csa: '+2846UM', expected: { piece: '馬', from: { row: 7, col: 7 }, to: { row: 5, col: 5 }, player: Player.SENTE } },
+        { csa: '+2862RY', expected: { piece: '龍', from: { row: 7, col: 7 }, to: { row: 1, col: 3 }, player: Player.SENTE } }
       ];
       
       moves.forEach(({ csa, expected }) => {
@@ -133,13 +134,13 @@ describe('CSA Converter', () => {
             from: { row: 6, col: 2 },
             to: { row: 5, col: 2 },
             piece: '歩',
-            player: 'sente'
+            player: Player.SENTE
           },
           {
             from: { row: 2, col: 6 },
             to: { row: 3, col: 6 },
             piece: '歩',
-            player: 'gote'
+            player: Player.GOTE
           }
         ],
         createdAt: '2024-01-15T10:00:00Z',

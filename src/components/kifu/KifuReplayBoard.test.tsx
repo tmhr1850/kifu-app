@@ -2,6 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import KifuReplayBoard from './KifuReplayBoard'
 import { KifuRecord } from '@/types/kifu'
+import { Player } from '@/types/shogi'
 
 const mockKifu: KifuRecord = {
   id: 'test-kifu',
@@ -16,14 +17,14 @@ const mockKifu: KifuRecord = {
       to: { row: 5, col: 7 },
       piece: '歩',
       promote: false,
-      player: 'sente',
+      player: Player.SENTE,
     },
     {
       from: { row: 2, col: 3 },
       to: { row: 3, col: 3 },
       piece: '歩',
       promote: false,
-      player: 'gote',
+      player: Player.GOTE,
     },
   ],
   createdAt: new Date().toISOString(),
