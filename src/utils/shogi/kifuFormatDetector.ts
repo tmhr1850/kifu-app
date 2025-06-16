@@ -9,12 +9,12 @@ export function detectKifuFormat(content: string): KifuFormat {
   }
   
   // Check for KIF format
-  if (lines.some(line => line.includes('---- Kifu for Windows ----') || line.match(/^\s*\d+\s+[１-９][一-九].+\(\d{2}\)/))) {
+  if (lines.some(line => line.includes('---- Kifu for Windows ----') || line.match(/^\s*\d+\s+[１-９][一二三四五六七八九].+\(\d{2}\)/))) {
     return 'kif';
   }
   
   // Check for KI2 format
-  if (lines.some(line => line.match(/^[☗☖]?(同|[１-９][一-九])/))) {
+  if (lines.some(line => line.match(/^[☗☖]?(同|[１-９][一二三四五六七八九])/))) {
     return 'ki2';
   }
   
