@@ -50,7 +50,17 @@ export function makeMove(gameState: GameState, move: Move): GameState | null {
   // 新しい状態を作成
   const newBoard = copyBoard(gameState.board);
   const newHandPieces = copyHandPieces(gameState.handPieces);
-  const newMoveHistory = [...gameState.moveHistory, move];
+  
+  // 捕獲される駒を記録
+  const moveWithCapture = { ...move };
+  if (move.from) {
+    const capturedPiece = getPieceAt(newBoard, move.to);
+    if (capturedPiece) {
+      moveWithCapture.captured = capturedPiece;
+    }
+  }
+  
+  const newMoveHistory = [...gameState.moveHistory, moveWithCapture];
 
   if (move.from) {
     // 通常の移動
@@ -271,21 +281,67 @@ export function undoMove(gameState: GameState): GameState | null {
     return null; // 戻す手がない
   }
 
-  // 初期状態から最後の手を除いて再構築
-  const newGameState = createNewGame();
-  const movesToReplay = gameState.moveHistory.slice(0, -1);
+  // 最後の手を取得
+  const lastMove = gameState.moveHistory[gameState.moveHistory.length - 1];
+  const newBoard = copyBoard(gameState.board);
+  const newHandPieces = copyHandPieces(gameState.handPieces);
+  const newMoveHistory = gameState.moveHistory.slice(0, -1);
 
-  // 各手を再適用
-  let currentState = newGameState;
-  for (const move of movesToReplay) {
-    const nextState = makeMove(currentState, move);
-    if (!nextState) {
-      return null; // エラーが発生した場合
+  if (lastMove.from) {
+    // 通常の移動を元に戻す
+    const piece = getPieceAt(newBoard, lastMove.to);
+    if (!piece) return null;
+
+    // 成りを元に戻す
+    let originalPiece = piece;
+    if (lastMove.promote) {
+      // 成り駒を元に戻す
+      const unpromoteMap: Partial<Record<PieceType, PieceType>> = {
+        [PieceType.TO]: PieceType.FU,
+        [PieceType.NKYO]: PieceType.KYO,
+        [PieceType.NKEI]: PieceType.KEI,
+        [PieceType.NGIN]: PieceType.GIN,
+        [PieceType.UMA]: PieceType.KAKU,
+        [PieceType.RYU]: PieceType.HI,
+      };
+      const originalType = unpromoteMap[piece.type];
+      if (originalType) {
+        originalPiece = { type: originalType, player: piece.player };
+      }
     }
-    currentState = nextState;
+
+    // 移動先を空にする
+    setPieceAt(newBoard, lastMove.to, null);
+    
+    // 移動元に戻す
+    setPieceAt(newBoard, lastMove.from, originalPiece);
+
+    // 捕獲された駒を復元
+    if (lastMove.captured) {
+      setPieceAt(newBoard, lastMove.to, lastMove.captured);
+      // 持ち駒から取り除く
+      const handPieceType = unpromoteForHand(lastMove.captured.type);
+      const previousPlayer = getOpponentPlayer(gameState.currentPlayer);
+      removeFromHand(newHandPieces, previousPlayer, handPieceType);
+    }
+  } else {
+    // 持ち駒を打った手を元に戻す
+    setPieceAt(newBoard, lastMove.to, null);
+    // 持ち駒に戻す
+    const previousPlayer = getOpponentPlayer(gameState.currentPlayer);
+    addToHand(newHandPieces, previousPlayer, lastMove.piece.type);
   }
 
-  return currentState;
+  // 前のプレイヤーに戻す
+  const previousPlayer = getOpponentPlayer(gameState.currentPlayer);
+
+  return {
+    board: newBoard,
+    handPieces: newHandPieces,
+    currentPlayer: previousPlayer,
+    moveHistory: newMoveHistory,
+    positionHistory: gameState.positionHistory,
+  };
 }
 
 // 持将棋判定
