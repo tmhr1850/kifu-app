@@ -11,6 +11,12 @@ export default function Home() {
           </h1>
           <div className="flex gap-4">
             <Link 
+              href="/ai" 
+              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+            >
+              🤖 AI対局
+            </Link>
+            <Link 
               href="/online" 
               className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
             >
