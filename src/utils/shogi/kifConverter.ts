@@ -5,11 +5,11 @@ const colToKanji = ['１', '２', '３', '４', '５', '６', '７', '８', '９
 const rowToKanji = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
 
 export function positionToKif(row: number, col: number): string {
-  return `${colToKanji[8 - col]}${rowToKanji[row]}`;
+  return `${colToKanji[col]}${rowToKanji[row]}`;
 }
 
 export function kifToPosition(kif: string): { row: number; col: number } {
-  const col = 8 - colToKanji.indexOf(kif[0]);
+  const col = colToKanji.indexOf(kif[0]);
   const row = rowToKanji.indexOf(kif[1]);
   return { row, col };
 }
@@ -21,7 +21,7 @@ export function moveToKif(move: KifuMove, moveNumber: number): string {
   
   let notation: string;
   if (move.from) {
-    const from = `(${9 - move.from.col}${move.from.row + 1})`;
+    const from = `(${move.from.col + 1}${move.from.row + 1})`;
     notation = `${to}${piece}${promote}${from}`;
   } else {
     notation = `${to}${piece}打`;
@@ -40,12 +40,12 @@ export function moveToKif(move: KifuMove, moveNumber: number): string {
 }
 
 export function kifToMove(kifMove: string, player: Player): KifuMove {
-  const moveMatch = kifMove.match(/^\s*\d+\s+([１-９])([一-九])([^\s(]+)(\(.+\))?/);
+  const moveMatch = kifMove.match(/^\s*\d+\s+([１-９])([一二三四五六七八九])([^\s(]+)(?:\((\d)(\d)\))?/);
   if (!moveMatch) {
     throw new Error(`Invalid KIF move format: ${kifMove}`);
   }
   
-  const [, col, row, pieceInfo, fromInfo] = moveMatch;
+  const [, col, row, pieceInfo, fromCol, fromRow] = moveMatch;
   const to = kifToPosition(col + row);
   
   const isDrop = pieceInfo.includes('打');
@@ -58,14 +58,11 @@ export function kifToMove(kifMove: string, player: Player): KifuMove {
     player
   };
   
-  if (!isDrop && fromInfo) {
-    const fromMatch = fromInfo.match(/\((\d)(\d)\)/);
-    if (fromMatch) {
-      move.from = {
-        col: 9 - parseInt(fromMatch[1]),
-        row: parseInt(fromMatch[2]) - 1
-      };
-    }
+  if (!isDrop && fromCol && fromRow) {
+    move.from = {
+      col: parseInt(fromCol) - 1,
+      row: parseInt(fromRow) - 1
+    };
   }
   
   if (isPromotion) {
@@ -153,7 +150,6 @@ export function kifFormatToGame(kif: string): { gameInfo: GameInfo; moves: KifuM
   const moves: KifuMove[] = [];
   
   let currentPlayer: Player = 'sente';
-  let lastComment: string | undefined;
   
   for (const line of lines) {
     if (line.startsWith('#') || line.includes('手数----指手')) {
@@ -192,13 +188,12 @@ export function kifFormatToGame(kif: string): { gameInfo: GameInfo; moves: KifuM
           break;
       }
     } else if (line.startsWith('*')) {
-      lastComment = line.substring(1);
+      // Comment applies to the previous move
+      if (moves.length > 0) {
+        moves[moves.length - 1].comment = line.substring(1);
+      }
     } else if (line.match(/^\s*\d+\s+/)) {
       const move = kifToMove(line, currentPlayer);
-      if (lastComment) {
-        move.comment = lastComment;
-        lastComment = undefined;
-      }
       moves.push(move);
       currentPlayer = currentPlayer === 'sente' ? 'gote' : 'sente';
     }
