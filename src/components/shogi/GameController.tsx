@@ -16,7 +16,7 @@ export const GameController: React.FC<GameControllerProps> = ({
   const [showResignDialog, setShowResignDialog] = useState(false);
   
   // 手数を計算
-  const moveCount = gameState.kifu.moves.length;
+  const moveCount = gameState.kifu?.moves?.length || 0;
   
   // 投了処理
   const handleResign = useCallback(() => {
@@ -28,7 +28,7 @@ export const GameController: React.FC<GameControllerProps> = ({
 
   // 待った（手を戻す）処理
   const handleUndo = useCallback(() => {
-    if (gameState.kifu.moves.length === 0) return;
+    if (!gameState.kifu?.moves || gameState.kifu.moves.length === 0) return;
     
     const newState = undoMoveWithKifu(gameState);
     if (newState) {

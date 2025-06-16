@@ -23,7 +23,7 @@ export const GameBoard: React.FC = () => {
 
   // 最終着手を計算
   const lastMove = useMemo(() => {
-    const moves = gameState.kifu.moves;
+    const moves = gameState.kifu?.moves || [];
     if (moves.length === 0) return null;
 
     const gameMove = gameState.game.moveHistory[gameState.game.moveHistory.length - 1];
@@ -67,6 +67,7 @@ export const GameBoard: React.FC = () => {
     <div className="game-board-container flex flex-col lg:flex-row gap-4 p-4">
       <div className="board-section flex-1">
         <DraggableBoard 
+          board={gameState.game.board}
           onMove={handleMove}
           lastMove={lastMove}
         />

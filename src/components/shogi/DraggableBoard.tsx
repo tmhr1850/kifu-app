@@ -8,12 +8,13 @@ import PromotionModal from './PromotionModal'
 import { canPromotePiece, canPromoteAt, mustPromoteAt, promotePiece, getPieceDisplayName } from '@/utils/shogi/pieceUtils'
 
 interface DraggableBoardProps {
+  board?: (BoardPiece | null)[][]
   onMove?: (from: Position, to: Position) => void
   lastMove?: { from: Position; to: Position } | null
 }
 
-export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove, lastMove }) => {
-  const [boardState, setBoardState] = useState(getInitialBoard())
+export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, lastMove }) => {
+  const [boardState, setBoardState] = useState(board || getInitialBoard())
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null)
   const [validMoves, setValidMoves] = useState<Position[]>([])
   const [draggedPiece, setDraggedPiece] = useState<{ position: Position, piece: BoardPiece } | null>(null)
@@ -25,6 +26,12 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ onMove, lastMove
 
   const colNumbers = [9, 8, 7, 6, 5, 4, 3, 2, 1]
   const rowKanji = ['一', '二', '三', '四', '五', '六', '七', '八', '九']
+
+  useEffect(() => {
+    if (board) {
+      setBoardState(board)
+    }
+  }, [board])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
