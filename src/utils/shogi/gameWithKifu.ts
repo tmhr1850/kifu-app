@@ -13,6 +13,12 @@ export interface GameWithKifu {
   kifuRecord: KifuRecord;
 }
 
+// Alias for compatibility with existing components
+export interface GameStateWithKifu {
+  game: GameState;
+  kifu: KifuRecord;
+}
+
 export interface GameStateWrapper {
   game: {
     board: (PieceType | null)[][];
@@ -25,7 +31,7 @@ export interface GameStateWrapper {
 }
 
 // 新しいゲームを開始（棋譜記録付き）
-export function createNewGameWithKifu(gameInfo?: Partial<GameInfo>): GameWithKifu {
+export function createNewGameWithKifu(gameInfo?: Partial<GameInfo>): GameStateWithKifu {
   const gameState = createNewGame();
   const kifuRecord = createNewKifuRecord(gameInfo);
   
@@ -33,13 +39,13 @@ export function createNewGameWithKifu(gameInfo?: Partial<GameInfo>): GameWithKif
   saveKifuRecord(kifuRecord);
   
   return {
-    gameState,
-    kifuRecord
+    game: gameState,
+    kifu: kifuRecord
   };
 }
 
 // 棋譜から対局を読み込む
-export function loadGameFromKifu(kifuId: string): GameWithKifu | null {
+export function loadGameFromKifu(kifuId: string): GameStateWithKifu | null {
   const kifuRecord = loadKifuRecord(kifuId);
   if (!kifuRecord) {
     return null;
@@ -59,17 +65,17 @@ export function loadGameFromKifu(kifuId: string): GameWithKifu | null {
   }
   
   return {
-    gameState,
-    kifuRecord
+    game: gameState,
+    kifu: kifuRecord
   };
 }
 
 // 移動を実行（棋譜記録付き）
 export function makeMoveWithKifu(
-  gameWithKifu: GameWithKifu, 
+  gameWithKifu: GameStateWithKifu, 
   move: Move
-): GameWithKifu | null {
-  const newGameState = makeMove(gameWithKifu.gameState, move);
+): GameStateWithKifu | null {
+  const newGameState = makeMove(gameWithKifu.game, move);
   if (!newGameState) {
     return null;
   }
@@ -85,8 +91,8 @@ export function makeMoveWithKifu(
   
   // 棋譜記録を更新
   const updatedKifuRecord = {
-    ...gameWithKifu.kifuRecord,
-    moves: [...gameWithKifu.kifuRecord.moves, kifuMove],
+    ...gameWithKifu.kifu,
+    moves: [...gameWithKifu.kifu.moves, kifuMove],
     updatedAt: new Date().toISOString()
   };
   
@@ -94,17 +100,17 @@ export function makeMoveWithKifu(
   saveKifuRecord(updatedKifuRecord);
   
   return {
-    gameState: newGameState,
-    kifuRecord: updatedKifuRecord
+    game: newGameState,
+    kifu: updatedKifuRecord
   };
 }
 
 // 対局終了時の処理
 export function endGameWithKifu(
-  gameWithKifu: GameWithKifu,
+  gameWithKifu: GameStateWithKifu,
   result?: 'sente_win' | 'gote_win' | 'draw' | 'resign'
-): GameWithKifu {
-  const status = getGameStatus(gameWithKifu.gameState);
+): GameStateWithKifu {
+  const status = getGameStatus(gameWithKifu.game);
   
   // 結果を記録
   const gameResult = result || (
@@ -114,9 +120,9 @@ export function endGameWithKifu(
   );
   
   const updatedKifuRecord = {
-    ...gameWithKifu.kifuRecord,
+    ...gameWithKifu.kifu,
     gameInfo: {
-      ...gameWithKifu.kifuRecord.gameInfo,
+      ...gameWithKifu.kifu.gameInfo,
       endTime: new Date().toTimeString().split(' ')[0],
       result: gameResult
     },
@@ -127,21 +133,21 @@ export function endGameWithKifu(
   
   // 更新されたゲーム状態を返す
   const updatedGameState = {
-    ...gameWithKifu.gameState,
+    ...gameWithKifu.game,
     gameStatus: 'resigned' as const,
     resigned: true
   };
   
   return {
-    gameState: updatedGameState,
-    kifuRecord: updatedKifuRecord
+    game: updatedGameState,
+    kifu: updatedKifuRecord
   };
 }
 
 // 手動保存
-export function saveCurrentGame(gameWithKifu: GameWithKifu): void {
+export function saveCurrentGame(gameWithKifu: GameStateWithKifu): void {
   const updatedKifuRecord = {
-    ...gameWithKifu.kifuRecord,
+    ...gameWithKifu.kifu,
     updatedAt: new Date().toISOString()
   };
   
@@ -149,30 +155,30 @@ export function saveCurrentGame(gameWithKifu: GameWithKifu): void {
 }
 
 // 待った（手を戻す）
-export function undoMoveWithKifu(gameWithKifu: GameWithKifu): GameWithKifu | null {
-  const undoneGameState = undoMove(gameWithKifu.gameState);
+export function undoMoveWithKifu(gameWithKifu: GameStateWithKifu): GameStateWithKifu | null {
+  const undoneGameState = undoMove(gameWithKifu.game);
   if (!undoneGameState) {
     return null;
   }
 
   // 棋譜から最後の手を削除
-  const updatedMoves = gameWithKifu.kifuRecord.moves.slice(0, -1);
+  const updatedMoves = gameWithKifu.kifu.moves.slice(0, -1);
   
   const updatedKifuRecord = {
-    ...gameWithKifu.kifuRecord,
+    ...gameWithKifu.kifu,
     moves: updatedMoves,
     updatedAt: new Date().toISOString()
   };
 
   return {
-    gameState: undoneGameState,
-    kifuRecord: updatedKifuRecord
+    game: undoneGameState,
+    kifu: updatedKifuRecord
   };
 }
 
 // KIF形式でエクスポート
-export function exportGameAsKif(gameWithKifu: GameWithKifu): string {
-  return exportKifToText(gameWithKifu.kifuRecord.id) || '';
+export function exportGameAsKif(gameWithKifu: GameStateWithKifu): string {
+  return exportKifToText(gameWithKifu.kifu.id) || '';
 }
 
 // Helper functions

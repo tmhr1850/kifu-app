@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { GameWithKifu } from '@/utils/shogi/gameWithKifu';
+import { GameStateWithKifu } from '@/utils/shogi/gameWithKifu';
 import { saveCurrentGame, exportGameAsKif } from '@/utils/shogi/gameWithKifu';
 import { importKifFromText, getStorageInfo } from '@/utils/shogi/storageService';
 
 interface KifuControlsProps {
-  gameWithKifu: GameWithKifu | null;
+  gameWithKifu: GameStateWithKifu | null;
   onImport: (kifuId: string) => void;
 }
 
