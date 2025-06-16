@@ -59,3 +59,58 @@ export interface GameResult {
   reason: 'checkmate' | 'resignation' | 'timeout' | 'disconnection' | 'draw'
   finalState: GameState
 }
+
+// マッチング関連の型定義
+export interface MatchRequest {
+  id: string
+  playerId: string
+  playerName: string
+  rating?: number
+  timeControl?: TimeControl
+  createdAt: Date
+  status: 'waiting' | 'matched' | 'cancelled'
+}
+
+export interface MatchingQueue {
+  requests: MatchRequest[]
+  averageWaitTime?: number
+}
+
+export interface MatchingOptions {
+  mode: 'random' | 'rated' | 'friend'
+  timeControl?: TimeControl
+  ratingRange?: {
+    min: number
+    max: number
+  }
+  friendId?: string
+}
+
+export interface MatchFoundEvent {
+  matchId: string
+  roomId: string
+  opponent: {
+    id: string
+    name: string
+    rating?: number
+    avatar?: string
+  }
+  timeControl?: TimeControl
+  playerColor: Player
+}
+
+export interface GameInvite {
+  id: string
+  fromPlayer: {
+    id: string
+    name: string
+    rating?: number
+    avatar?: string
+  }
+  toPlayerId: string
+  timeControl?: TimeControl
+  message?: string
+  createdAt: Date
+  expiresAt: Date
+  status: 'pending' | 'accepted' | 'declined' | 'expired'
+}
