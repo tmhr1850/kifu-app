@@ -6,6 +6,8 @@ import { Player } from '@/types/shogi'
 import { AIDifficulty, AITimeSettings } from '@/utils/ai/types'
 import AIGameBoard from '@/components/shogi/AIGameBoard'
 import { useAIGame } from '@/hooks/useAIGame'
+import { QuickAnalysisPanel } from '@/components/analysis/QuickAnalysisPanel'
+import { useQuickAnalysis } from '@/hooks/useQuickAnalysis'
 
 // AI設定画面
 interface AIGameSettings {
@@ -207,6 +209,8 @@ function AIGameScreen({ settings, onBack }: { settings: AIGameSettings; onBack: 
     aiColor
   } = useAIGame(settings)
 
+  const { analysis, isAnalyzing, toggleAnalysis } = useQuickAnalysis(gameState)
+
   const getDifficultyLabel = (difficulty: AIDifficulty) => {
     const labels = {
       [AIDifficulty.BEGINNER]: '初級',
@@ -294,6 +298,13 @@ function AIGameScreen({ settings, onBack }: { settings: AIGameSettings; onBack: 
                 </div>
               </div>
             )}
+
+            {/* クイック分析 */}
+            <QuickAnalysisPanel
+              analysis={analysis}
+              isAnalyzing={isAnalyzing}
+              onToggleAnalysis={toggleAnalysis}
+            />
 
             {/* アクションボタン */}
             <div className="space-y-2">
