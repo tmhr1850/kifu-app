@@ -15,7 +15,7 @@ function ki2ToPosition(ki2: string): { row: number; col: number } {
 }
 
 export function moveToKi2(move: KifuMove, prevMove: KifuMove | null): string {
-  const playerSymbol = move.player === 'sente' ? '☗' : '☖';
+  const playerSymbol = move.player === Player.SENTE ? '☗' : '☖';
   
   let notation = playerSymbol;
   
@@ -145,7 +145,7 @@ export function ki2FormatToGame(ki2: string): { gameInfo: GameInfo; moves: KifuM
   };
   const moves: KifuMove[] = [];
   
-  let currentPlayer: Player = 'sente';
+  let currentPlayer: Player = Player.SENTE;
   let prevMove: KifuMove | null = null;
   let lastComment: string | undefined;
   
@@ -192,7 +192,7 @@ export function ki2FormatToGame(ki2: string): { gameInfo: GameInfo; moves: KifuM
       }
       moves.push(move);
       prevMove = move;
-      currentPlayer = currentPlayer === 'sente' ? 'gote' : 'sente';
+      currentPlayer = currentPlayer === Player.SENTE ? Player.GOTE : Player.SENTE;
     }
   }
   

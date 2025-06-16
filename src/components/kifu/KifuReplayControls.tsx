@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react'
 import { KifuMove } from '@/types/kifu'
+import { Player } from '@/types/shogi'
 
 interface KifuReplayControlsProps {
   moves: KifuMove[]
@@ -144,7 +145,7 @@ export default function KifuReplayControls({
 
   const currentMove = currentMoveIndex >= 0 ? moves[currentMoveIndex] : null
   const moveText = currentMove 
-    ? `${currentMove.player === 'sente' ? '▲' : '△'}${currentMove.piece}${currentMove.to}${currentMove.promote ? '成' : ''}`
+    ? `${currentMove.player === Player.SENTE ? '▲' : '△'}${currentMove.piece}${currentMove.to}${currentMove.promote ? '成' : ''}`
     : '開始局面'
 
   return (

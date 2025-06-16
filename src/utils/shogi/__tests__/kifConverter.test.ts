@@ -7,6 +7,7 @@ import {
   formatKifHeader
 } from '../kifConverter';
 import { KifuMove, GameInfo, KifuRecord } from '@/types/kifu';
+import { Player } from '@/types/shogi';
 
 describe('KIF Converter', () => {
   describe('moveToKif', () => {
@@ -15,7 +16,7 @@ describe('KIF Converter', () => {
         from: { row: 6, col: 6 },
         to: { row: 5, col: 6 },
         piece: '歩',
-        player: 'sente'
+        player: Player.SENTE
       };
       expect(moveToKif(move, 1)).toBe('   1 ７六歩(77)');
     });
@@ -24,7 +25,7 @@ describe('KIF Converter', () => {
       const move: KifuMove = {
         to: { row: 4, col: 4 },
         piece: '歩',
-        player: 'gote'
+        player: Player.GOTE
       };
       expect(moveToKif(move, 2)).toBe('   2 ５五歩打');
     });
@@ -35,7 +36,7 @@ describe('KIF Converter', () => {
         to: { row: 1, col: 7 },
         piece: '銀',
         promote: true,
-        player: 'sente'
+        player: Player.SENTE
       };
       expect(moveToKif(move, 3)).toBe('   3 ２一銀成(22)');
     });
@@ -45,7 +46,7 @@ describe('KIF Converter', () => {
         from: { row: 6, col: 6 },
         to: { row: 5, col: 6 },
         piece: '歩',
-        player: 'sente',
+        player: Player.SENTE,
         time: 15
       };
       expect(moveToKif(move, 1)).toBe('   1 ７六歩(77)   ( 0:15/00:00:15)');
@@ -59,9 +60,9 @@ describe('KIF Converter', () => {
         from: { row: 6, col: 6 },
         to: { row: 5, col: 6 },
         piece: '歩',
-        player: 'sente'
+        player: Player.SENTE
       };
-      expect(kifToMove(kifMove, 'sente')).toEqual(expected);
+      expect(kifToMove(kifMove, Player.SENTE)).toEqual(expected);
     });
 
     it('should parse a drop move', () => {
@@ -69,9 +70,9 @@ describe('KIF Converter', () => {
       const expected: KifuMove = {
         to: { row: 4, col: 4 },
         piece: '歩',
-        player: 'gote'
+        player: Player.GOTE
       };
-      expect(kifToMove(kifMove, 'gote')).toEqual(expected);
+      expect(kifToMove(kifMove, Player.GOTE)).toEqual(expected);
     });
 
     it('should parse a promotion move', () => {
@@ -81,14 +82,14 @@ describe('KIF Converter', () => {
         to: { row: 1, col: 7 },
         piece: '銀',
         promote: true,
-        player: 'sente'
+        player: Player.SENTE
       };
-      expect(kifToMove(kifMove, 'sente')).toEqual(expected);
+      expect(kifToMove(kifMove, Player.SENTE)).toEqual(expected);
     });
 
     it('should parse move with time', () => {
       const kifMove = '   1 ７六歩(77)   ( 0:15/00:00:15)';
-      const move = kifToMove(kifMove, 'sente');
+      const move = kifToMove(kifMove, Player.SENTE);
       expect(move.time).toBe(15);
     });
   });
@@ -131,13 +132,13 @@ describe('KIF Converter', () => {
             from: { row: 6, col: 6 },
             to: { row: 5, col: 6 },
             piece: '歩',
-            player: 'sente'
+            player: Player.SENTE
           },
           {
             from: { row: 2, col: 2 },
             to: { row: 3, col: 2 },
             piece: '歩',
-            player: 'gote'
+            player: Player.GOTE
           }
         ],
         createdAt: '2024-01-15T10:00:00Z',

@@ -23,7 +23,7 @@ export interface GameStateWrapper {
   game: {
     board: (PieceType | null)[][];
     captures: { sente: Map<PieceType, number>, gote: Map<PieceType, number> };
-    currentPlayer: 'sente' | 'gote';
+    currentPlayer: Player;
     makeMove: (from: number, to: number, promote: boolean) => GameStateWrapper['game'];
     placePiece: (pieceType: PieceType, to: number) => GameStateWrapper['game'];
     getPieceTypeFromKanji: (kanji: string) => PieceType | null;
@@ -86,7 +86,7 @@ export function makeMoveWithKifu(
     to: { row: move.to.row, col: move.to.col },
     piece: getPieceChar(move.piece.type),
     promote: move.promote,
-    player: move.piece.player === Player.SENTE ? 'sente' : 'gote'
+    player: move.piece.player
   };
   
   // 棋譜記録を更新
@@ -209,7 +209,7 @@ function kifuMoveToGameMove(kifuMove: KifuMove): Move | null {
   // これは実際の盤面状態を参照して、適切なPieceオブジェクトを構築する必要がある
   const piece = {
     type: getPieceTypeFromChar(kifuMove.piece),
-    player: kifuMove.player === 'sente' ? Player.SENTE : Player.GOTE
+    player: kifuMove.player === Player.SENTE ? Player.SENTE : Player.GOTE
   };
   
   return {
@@ -252,7 +252,7 @@ export function createGameFromKifu(): GameStateWrapper {
         sente: gameState.handPieces[Player.SENTE],
         gote: gameState.handPieces[Player.GOTE]
       },
-      currentPlayer: gameState.currentPlayer === Player.SENTE ? 'sente' : 'gote',
+      currentPlayer: gameState.currentPlayer,
       makeMove: (from: number, to: number, promote: boolean) => {
         const fromPos = from >= 0 ? { row: Math.floor(from / 9), col: from % 9 } : null;
         const toPos = { row: Math.floor(to / 9), col: to % 9 };
@@ -278,7 +278,7 @@ export function createGameFromKifu(): GameStateWrapper {
           sente: gameState.handPieces[Player.SENTE],
           gote: gameState.handPieces[Player.GOTE]
         };
-        wrapper.game.currentPlayer = gameState.currentPlayer === Player.SENTE ? 'sente' : 'gote';
+        wrapper.game.currentPlayer = gameState.currentPlayer;
         
         return wrapper.game;
       },
@@ -304,7 +304,7 @@ export function createGameFromKifu(): GameStateWrapper {
           sente: gameState.handPieces[Player.SENTE],
           gote: gameState.handPieces[Player.GOTE]
         };
-        wrapper.game.currentPlayer = gameState.currentPlayer === Player.SENTE ? 'sente' : 'gote';
+        wrapper.game.currentPlayer = gameState.currentPlayer;
         
         return wrapper.game;
       },

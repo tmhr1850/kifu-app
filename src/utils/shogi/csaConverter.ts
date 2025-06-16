@@ -49,7 +49,7 @@ function csaToPosition(csa: string): { row: number; col: number } {
 }
 
 export function moveToCsa(move: KifuMove): string {
-  const player = move.player === 'sente' ? '+' : '-';
+  const player = move.player === Player.SENTE ? '+' : '-';
   const from = move.from ? positionToCSA(move.from.row, move.from.col) : '00';
   const to = positionToCSA(move.to.row, move.to.col);
   const piece = pieceToCSA[move.piece] || move.piece;
@@ -64,7 +64,7 @@ export function csaToMove(csaMove: string): KifuMove {
   }
   
   const [, playerSign, fromPos, toPos, pieceCode] = match;
-  const player: Player = playerSign === '+' ? 'sente' : 'gote';
+  const player: Player = playerSign === '+' ? Player.SENTE : Player.GOTE;
   const to = csaToPosition(toPos);
   const piece = csaToPiece[pieceCode] || pieceCode;
   

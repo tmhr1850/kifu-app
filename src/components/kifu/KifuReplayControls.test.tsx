@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import KifuReplayControls from './KifuReplayControls'
 import { KifuMove } from '@/types/kifu'
+import { Player } from '@/types/shogi'
 
 const mockMoves: KifuMove[] = [
   {
@@ -10,21 +11,21 @@ const mockMoves: KifuMove[] = [
     to: { row: 5, col: 7 },
     piece: '歩',
     promote: false,
-    player: 'sente',
+    player: Player.SENTE,
   },
   {
     from: { row: 2, col: 3 },
     to: { row: 3, col: 3 },
     piece: '歩',
     promote: false,
-    player: 'gote',
+    player: Player.GOTE,
   },
   {
     from: { row: 5, col: 7 },
     to: { row: 4, col: 7 },
     piece: '歩',
     promote: false,
-    player: 'sente',
+    player: Player.SENTE,
   },
 ]
 

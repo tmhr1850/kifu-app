@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { io, Socket } from 'socket.io-client'
-import { Move, GameState } from '@/types/shogi'
+import { Move, GameState, Player } from '@/types/shogi'
 import { useAuth } from './AuthContext'
 
 interface Room {
@@ -11,7 +11,7 @@ interface Room {
     id: string
     name: string
     socketId: string
-    color: 'sente' | 'gote'
+    color: Player
     connected?: boolean
   }>
   gameState: GameState | null
