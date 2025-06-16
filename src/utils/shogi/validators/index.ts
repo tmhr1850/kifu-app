@@ -110,8 +110,8 @@ export function mustPromoteMove(
   return mustPromote(piece, to);
 }
 
-// 全ての合法手を取得
-export function getAllValidMoves(gameState: GameState): Move[] {
+// 全ての合法手を取得（同期版）
+export function getAllValidMovesSync(gameState: GameState): Move[] {
   const { board, handPieces, currentPlayer } = gameState;
   const allMoves: Move[] = [];
   
@@ -171,32 +171,113 @@ export function getAllValidMoves(gameState: GameState): Move[] {
   return allMoves;
 }
 
-// 詰みチェック
-export function isCheckmate(gameState: GameState): boolean {
+// 全ての合法手を取得（非同期版 - AI用）
+export async function getAllValidMoves(gameState: GameState): Promise<Move[]> {
+  const { board, handPieces, currentPlayer } = gameState;
+  const allMoves: Move[] = [];
+  
+  // 盤上の駒の移動
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      const piece = board[row][col];
+      if (piece && piece.player === currentPlayer) {
+        const from = { row, col };
+        const validMoves = getPieceValidMoves(piece.type, board, from, currentPlayer);
+        
+        for (const to of validMoves) {
+          // 王手放置チェック
+          if (!wouldBeInCheck(board, from, to, currentPlayer)) {
+            const captured = getPieceAt(board, to);
+            const move: Move = { from, to, piece };
+            
+            if (captured) {
+              move.captured = captured;
+            }
+            
+            // 成りの選択肢も追加
+            if (canPromoteMove(board, from, to, currentPlayer)) {
+              if (!mustPromoteMove(board, from, to, currentPlayer)) {
+                // 成らない選択肢
+                allMoves.push({ ...move });
+              }
+              // 成る選択肢
+              allMoves.push({ ...move, promote: true });
+            } else {
+              allMoves.push(move);
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // 持ち駒を打つ
+  handPieces[currentPlayer].forEach((count, pieceType) => {
+    if (count > 0) {
+      for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+          const to = { row, col };
+          if (isValidDrop(board, handPieces, to, pieceType, currentPlayer)) {
+            allMoves.push({
+              from: null,
+              to,
+              piece: { type: pieceType, player: currentPlayer },
+            });
+          }
+        }
+      }
+    }
+  });
+  
+  return allMoves;
+}
+
+// 詰みチェック（同期版）
+export function isCheckmateSync(gameState: GameState): boolean {
   // 王手されていない場合は詰みではない
   if (!isInCheck(gameState.board, gameState.currentPlayer)) return false;
   
   // 合法手が一つでもあれば詰みではない
-  const validMoves = getAllValidMoves(gameState);
+  const validMoves = getAllValidMovesSync(gameState);
   return validMoves.length === 0;
 }
 
-// ステイルメイト（手詰まり）チェック
-export function isStalemate(gameState: GameState): boolean {
+// ステイルメイト（手詰まり）チェック（同期版）
+export function isStalemateSync(gameState: GameState): boolean {
   // 王手されている場合はステイルメイトではない
   if (isInCheck(gameState.board, gameState.currentPlayer)) return false;
   
   // 合法手がない場合はステイルメイト
-  const validMoves = getAllValidMoves(gameState);
+  const validMoves = getAllValidMovesSync(gameState);
+  return validMoves.length === 0;
+}
+
+// 詰みチェック（非同期版 - AI用）
+export async function isCheckmate(gameState: GameState): Promise<boolean> {
+  // 王手されていない場合は詰みではない
+  if (!isInCheck(gameState.board, gameState.currentPlayer)) return false;
+  
+  // 合法手が一つでもあれば詰みではない
+  const validMoves = await getAllValidMoves(gameState);
+  return validMoves.length === 0;
+}
+
+// ステイルメイト（手詰まり）チェック
+export async function isStalemate(gameState: GameState): Promise<boolean> {
+  // 王手されている場合はステイルメイトではない
+  if (isInCheck(gameState.board, gameState.currentPlayer)) return false;
+  
+  // 合法手がない場合はステイルメイト
+  const validMoves = await getAllValidMoves(gameState);
   return validMoves.length === 0;
 }
 
 // 打ち歩詰めチェック
-export function isUchifuzume(
+export async function isUchifuzume(
   board: Board,
   dropPosition: Position,
   player: Player
-): boolean {
+): Promise<boolean> {
   // 仮の盤面を作成
   const testBoard = board.map(row => [...row]);
   testBoard[dropPosition.row][dropPosition.col] = { type: PieceType.FU, player };
@@ -215,7 +296,7 @@ export function isUchifuzume(
     moveHistory: [],
   };
   
-  const validMoves = getAllValidMoves(testGameState);
+  const validMoves = await getAllValidMoves(testGameState);
   
   // 合法手がなければ打ち歩詰め
   return validMoves.length === 0;

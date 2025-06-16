@@ -19,8 +19,8 @@ import {
 } from './board';
 import {
   isValidMove,
-  isCheckmate,
-  isStalemate,
+  isCheckmateSync,
+  isStalemateSync,
   isInCheck,
 } from './validators';
 import {
@@ -114,7 +114,7 @@ export function getGameStatus(gameState: GameState): GameStatus {
   }
 
   // 詰みチェック
-  if (isCheckmate(gameState)) {
+  if (isCheckmateSync(gameState)) {
     return {
       isOver: true,
       winner: getOpponentPlayer(gameState.currentPlayer),
@@ -123,7 +123,7 @@ export function getGameStatus(gameState: GameState): GameStatus {
   }
 
   // ステイルメイトチェック
-  if (isStalemate(gameState)) {
+  if (isStalemateSync(gameState)) {
     return {
       isOver: true,
       winner: null,
