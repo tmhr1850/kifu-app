@@ -1,8 +1,23 @@
 import { KifuRecord, KifuMetadata } from '@/types/kifu';
+import { GameState } from '@/types/shogi';
 import { gameToKifFormat, kifFormatToGame } from './kifConverter';
 
 const STORAGE_KEY = 'kifu_records';
+const PAUSED_GAMES_KEY = 'paused_games';
 const MAX_STORAGE_SIZE = 5 * 1024 * 1024; // 5MB limit
+
+export interface PausedGame {
+  id: string;
+  gameState: GameState;
+  kifuRecord: KifuRecord;
+  pausedAt: string;
+  gameMode: 'local' | 'ai' | 'online';
+  metadata?: {
+    aiDifficulty?: string;
+    playerColor?: string;
+    roomId?: string;
+  };
+}
 
 function generateId(): string {
   return `kifu_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -124,6 +139,60 @@ export function getStorageInfo(): { used: number; limit: number; percentage: num
 function getAllRecords(): KifuRecord[] {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+// 中断されたゲームの保存
+export function savePausedGame(pausedGame: PausedGame): void {
+  try {
+    const pausedGames = getAllPausedGames();
+    
+    // 既存の同じIDのゲームがあれば更新、なければ追加
+    const existingIndex = pausedGames.findIndex(g => g.id === pausedGame.id);
+    if (existingIndex >= 0) {
+      pausedGames[existingIndex] = pausedGame;
+    } else {
+      pausedGames.push(pausedGame);
+    }
+    
+    localStorage.setItem(PAUSED_GAMES_KEY, JSON.stringify(pausedGames));
+  } catch {
+    throw new Error('Failed to save paused game');
+  }
+}
+
+// 中断されたゲームの読み込み
+export function loadPausedGame(id: string): PausedGame | null {
+  const pausedGames = getAllPausedGames();
+  return pausedGames.find(g => g.id === id) || null;
+}
+
+// 中断されたゲームの一覧取得
+export function listPausedGames(): PausedGame[] {
+  return getAllPausedGames().sort((a, b) => 
+    new Date(b.pausedAt).getTime() - new Date(a.pausedAt).getTime()
+  );
+}
+
+// 中断されたゲームの削除
+export function deletePausedGame(id: string): boolean {
+  const pausedGames = getAllPausedGames();
+  const filteredGames = pausedGames.filter(g => g.id !== id);
+  
+  if (filteredGames.length === pausedGames.length) {
+    return false;
+  }
+  
+  localStorage.setItem(PAUSED_GAMES_KEY, JSON.stringify(filteredGames));
+  return true;
+}
+
+function getAllPausedGames(): PausedGame[] {
+  try {
+    const data = localStorage.getItem(PAUSED_GAMES_KEY);
     return data ? JSON.parse(data) : [];
   } catch {
     return [];

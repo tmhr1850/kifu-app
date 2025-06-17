@@ -8,18 +8,31 @@ import {
   GameStateWithKifu, 
   createNewGameWithKifu, 
   makeMoveWithKifu,
-  saveCurrentGame
+  saveCurrentGame,
+  resumeGame
 } from '@/utils/shogi/gameWithKifu';
 
 export const GameBoard: React.FC = () => {
-  const [gameState, setGameState] = useState<GameStateWithKifu>(() => 
-    createNewGameWithKifu({
+  const [gameState, setGameState] = useState<GameStateWithKifu>(() => {
+    // セッションストレージから再開するゲームIDを取得
+    if (typeof window !== 'undefined') {
+      const resumeGameId = sessionStorage.getItem('resumePausedGame');
+      if (resumeGameId) {
+        sessionStorage.removeItem('resumePausedGame');
+        const resumedGame = resumeGame(resumeGameId);
+        if (resumedGame) {
+          return resumedGame;
+        }
+      }
+    }
+    
+    return createNewGameWithKifu({
       title: '新規対局',
       sente: 'プレイヤー1',
       gote: 'プレイヤー2',
       handicap: 'none'
-    })
-  );
+    });
+  });
 
   // 最終着手を計算
   const lastMove = useMemo(() => {
@@ -63,6 +76,7 @@ export const GameBoard: React.FC = () => {
     saveCurrentGame(newState);
   }, []);
 
+
   return (
     <div className="game-board-container flex flex-col lg:flex-row gap-4 p-4">
       <div className="board-section flex-1">
@@ -77,6 +91,7 @@ export const GameBoard: React.FC = () => {
         <GameController
           gameState={gameState}
           onGameStateChange={handleGameStateChange}
+          gameMode="local"
         />
       </div>
     </div>

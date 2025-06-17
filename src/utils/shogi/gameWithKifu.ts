@@ -5,7 +5,11 @@ import {
   saveKifuRecord, 
   loadKifuRecord, 
   createNewKifuRecord,
-  exportKifToText 
+  exportKifToText,
+  savePausedGame,
+  loadPausedGame,
+  deletePausedGame,
+  PausedGame
 } from './storageService';
 
 export interface GameWithKifu {
@@ -180,6 +184,43 @@ export function undoMoveWithKifu(gameWithKifu: GameStateWithKifu): GameStateWith
 // KIF形式でエクスポート
 export function exportGameAsKif(gameWithKifu: GameStateWithKifu): string {
   return exportKifToText(gameWithKifu.kifu.id) || '';
+}
+
+// 対局を中断（一時保存）
+export function pauseGame(
+  gameWithKifu: GameStateWithKifu,
+  gameMode: 'local' | 'ai' | 'online' = 'local',
+  metadata?: PausedGame['metadata']
+): void {
+  const pausedGame: PausedGame = {
+    id: gameWithKifu.kifu.id,
+    gameState: gameWithKifu.game,
+    kifuRecord: gameWithKifu.kifu,
+    pausedAt: new Date().toISOString(),
+    gameMode,
+    metadata
+  };
+  
+  savePausedGame(pausedGame);
+}
+
+// 中断した対局を再開
+export function resumeGame(pausedGameId: string): GameStateWithKifu | null {
+  const pausedGame = loadPausedGame(pausedGameId);
+  if (!pausedGame) {
+    return null;
+  }
+  
+  // 中断データから復元
+  const gameWithKifu: GameStateWithKifu = {
+    game: pausedGame.gameState,
+    kifu: pausedGame.kifuRecord
+  };
+  
+  // 中断データを削除
+  deletePausedGame(pausedGameId);
+  
+  return gameWithKifu;
 }
 
 // Helper functions
