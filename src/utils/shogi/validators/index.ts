@@ -17,46 +17,82 @@ import { getPieceValidMoves } from '../pieces';
 import {
   canDropPieceAt,
   wouldBeInCheck,
+  ValidationResult,
+  checkImmovablePiece,
 } from './basic';
 
-// 移動が合法かチェック
+// 移動が合法かチェック（互換性のため、boolean版を残す）
 export function isValidMove(gameState: GameState, move: Move): boolean {
+  const result = validateMove(gameState, move);
+  return result.valid;
+}
+
+// 移動が合法かチェック（詳細なエラーメッセージ付き）
+export function validateMove(gameState: GameState, move: Move): ValidationResult {
   const { board, handPieces, currentPlayer } = gameState;
   
   // プレイヤーチェック
-  if (move.piece.player !== currentPlayer) return false;
+  if (move.piece.player !== currentPlayer) {
+    return { valid: false, errorMessage: '相手の手番です' };
+  }
   
   if (move.from) {
     // 通常の移動
-    return isValidPieceMove(board, move.from, move.to, currentPlayer);
+    return validatePieceMove(board, move.from, move.to, currentPlayer);
   } else {
     // 持ち駒を打つ
     return isValidDrop(board, handPieces, move.to, move.piece.type, currentPlayer);
   }
 }
 
-// 駒の移動が合法かチェック
+// 駒の移動が合法かチェック（互換性のため、boolean版を残す）
 export function isValidPieceMove(
   board: Board,
   from: Position,
   to: Position,
   player: Player
 ): boolean {
+  const result = validatePieceMove(board, from, to, player);
+  return result.valid;
+}
+
+// 駒の移動が合法かチェック（詳細なエラーメッセージ付き）
+export function validatePieceMove(
+  board: Board,
+  from: Position,
+  to: Position,
+  player: Player
+): ValidationResult {
   // 移動元の駒を取得
   const piece = getPieceAt(board, from);
-  if (!piece || piece.player !== player) return false;
+  if (!piece) {
+    return { valid: false, errorMessage: '移動元に駒がありません' };
+  }
+  if (piece.player !== player) {
+    return { valid: false, errorMessage: '相手の駒は動かせません' };
+  }
   
   // その駒の移動可能な位置を取得
   const validMoves = getPieceValidMoves(piece.type, board, from, player);
   
   // 移動先が移動可能な位置に含まれているかチェック
   const canMove = validMoves.some(pos => pos.row === to.row && pos.col === to.col);
-  if (!canMove) return false;
+  if (!canMove) {
+    return { valid: false, errorMessage: 'その駒はその位置に移動できません' };
+  }
+  
+  // 行き所のない駒のチェック（移動後）
+  const immovableResult = checkImmovablePiece(piece.type, to, player);
+  if (!immovableResult.valid) {
+    return immovableResult;
+  }
   
   // 王手放置チェック
-  if (wouldBeInCheck(board, from, to, player)) return false;
+  if (wouldBeInCheck(board, from, to, player)) {
+    return { valid: false, errorMessage: '王手を放置することはできません' };
+  }
   
-  return true;
+  return { valid: true };
 }
 
 // 持ち駒を打つのが合法かチェック
@@ -66,18 +102,23 @@ export function isValidDrop(
   to: Position,
   pieceType: PieceType,
   player: Player
-): boolean {
+): ValidationResult {
   // 持ち駒にあるかチェック
   const count = handPieces[player].get(pieceType) || 0;
-  if (count === 0) return false;
+  if (count === 0) {
+    return { valid: false, errorMessage: '持ち駒にその駒がありません' };
+  }
   
   // その位置に打てるかチェック
-  if (!canDropPieceAt(board, to, pieceType, player)) return false;
+  const dropResult = canDropPieceAt(board, to, pieceType, player);
+  if (!dropResult.valid) return dropResult;
   
   // 王手放置チェック
-  if (wouldBeInCheck(board, null, to, player, pieceType)) return false;
+  if (wouldBeInCheck(board, null, to, player, pieceType)) {
+    return { valid: false, errorMessage: '王手を放置することはできません' };
+  }
   
-  return true;
+  return { valid: true };
 }
 
 // 成りが可能かチェック
@@ -156,7 +197,8 @@ export function getAllValidMovesSync(gameState: GameState): Move[] {
       for (let row = 0; row < 9; row++) {
         for (let col = 0; col < 9; col++) {
           const to = { row, col };
-          if (isValidDrop(board, handPieces, to, pieceType, currentPlayer)) {
+          const dropResult = isValidDrop(board, handPieces, to, pieceType, currentPlayer);
+          if (dropResult.valid) {
             allMoves.push({
               from: null,
               to,
@@ -217,7 +259,8 @@ export async function getAllValidMoves(gameState: GameState): Promise<Move[]> {
       for (let row = 0; row < 9; row++) {
         for (let col = 0; col < 9; col++) {
           const to = { row, col };
-          if (isValidDrop(board, handPieces, to, pieceType, currentPlayer)) {
+          const dropResult = isValidDrop(board, handPieces, to, pieceType, currentPlayer);
+          if (dropResult.valid) {
             allMoves.push({
               from: null,
               to,
@@ -308,3 +351,4 @@ import { isInCheck } from './basic';
 
 // Re-export for external use
 export { isInCheck } from './basic';
+export type { ValidationResult } from './basic';

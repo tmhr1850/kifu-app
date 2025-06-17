@@ -18,7 +18,7 @@ import {
   unpromoteForHand,
 } from './board';
 import {
-  isValidMove,
+  validateMove,
   isCheckmateSync,
   isStalemateSync,
   isInCheck,
@@ -40,11 +40,24 @@ export function createNewGame(): GameState {
   };
 }
 
-// 移動を実行
+// 移動を実行（互換性のため残す）
 export function makeMove(gameState: GameState, move: Move): GameState | null {
+  const result = makeMoveWithValidation(gameState, move);
+  return result.valid ? result.newState : null;
+}
+
+// 移動を実行（エラーメッセージ付き）
+export interface MoveResult {
+  valid: boolean;
+  newState?: GameState;
+  errorMessage?: string;
+}
+
+export function makeMoveWithValidation(gameState: GameState, move: Move): MoveResult {
   // 移動が合法かチェック
-  if (!isValidMove(gameState, move)) {
-    return null;
+  const validationResult = validateMove(gameState, move);
+  if (!validationResult.valid) {
+    return { valid: false, errorMessage: validationResult.errorMessage };
   }
 
   // 新しい状態を作成
@@ -97,13 +110,15 @@ export function makeMove(gameState: GameState, move: Move): GameState | null {
   // 次のプレイヤーに交代
   const nextPlayer = getOpponentPlayer(gameState.currentPlayer);
 
-  return {
+  const newState = {
     board: newBoard,
     handPieces: newHandPieces,
     currentPlayer: nextPlayer,
     moveHistory: newMoveHistory,
     positionHistory: gameState.positionHistory,
   };
+
+  return { valid: true, newState };
 }
 
 // ゲームの状態をチェック

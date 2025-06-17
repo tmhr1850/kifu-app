@@ -26,27 +26,67 @@ describe('Basic Validators', () => {
   describe('canDropPieceAt', () => {
     test('空きマスに駒を打てる', () => {
       const board = createEmptyBoard();
-      expect(canDropPieceAt(board, { row: 4, col: 4 }, PieceType.FU, Player.SENTE)).toBe(true);
+      const result = canDropPieceAt(board, { row: 4, col: 4 }, PieceType.FU, Player.SENTE);
+      expect(result.valid).toBe(true);
     });
 
     test('駒がある場所には打てない', () => {
       const board = createEmptyBoard();
       setPieceAt(board, { row: 4, col: 4 }, { type: PieceType.FU, player: Player.SENTE });
-      expect(canDropPieceAt(board, { row: 4, col: 4 }, PieceType.FU, Player.SENTE)).toBe(false);
+      const result = canDropPieceAt(board, { row: 4, col: 4 }, PieceType.FU, Player.SENTE);
+      expect(result.valid).toBe(false);
+      expect(result.errorMessage).toBe('すでに駒がある場所には置けません');
     });
 
     test('歩は最奥段に打てない', () => {
       const board = createEmptyBoard();
-      expect(canDropPieceAt(board, { row: 0, col: 4 }, PieceType.FU, Player.SENTE)).toBe(false);
-      expect(canDropPieceAt(board, { row: 8, col: 4 }, PieceType.FU, Player.GOTE)).toBe(false);
+      const resultSente = canDropPieceAt(board, { row: 0, col: 4 }, PieceType.FU, Player.SENTE);
+      expect(resultSente.valid).toBe(false);
+      expect(resultSente.errorMessage).toBe('歩を１段目に打つことはできません');
+      
+      const resultGote = canDropPieceAt(board, { row: 8, col: 4 }, PieceType.FU, Player.GOTE);
+      expect(resultGote.valid).toBe(false);
+      expect(resultGote.errorMessage).toBe('歩を９段目に打つことはできません');
     });
 
     test('桂馬は2段目以内に打てない', () => {
       const board = createEmptyBoard();
-      expect(canDropPieceAt(board, { row: 0, col: 4 }, PieceType.KEI, Player.SENTE)).toBe(false);
-      expect(canDropPieceAt(board, { row: 1, col: 4 }, PieceType.KEI, Player.SENTE)).toBe(false);
-      expect(canDropPieceAt(board, { row: 2, col: 4 }, PieceType.KEI, Player.SENTE)).toBe(true);
+      const result1 = canDropPieceAt(board, { row: 0, col: 4 }, PieceType.KEI, Player.SENTE);
+      expect(result1.valid).toBe(false);
+      expect(result1.errorMessage).toBe('桂馬を１段目・２段目に打つことはできません');
+      
+      const result2 = canDropPieceAt(board, { row: 1, col: 4 }, PieceType.KEI, Player.SENTE);
+      expect(result2.valid).toBe(false);
+      
+      const result3 = canDropPieceAt(board, { row: 2, col: 4 }, PieceType.KEI, Player.SENTE);
+      expect(result3.valid).toBe(true);
     });
+  });
+
+  test('香車は最奥段に打てない', () => {
+    const board = createEmptyBoard();
+    const resultSente = canDropPieceAt(board, { row: 0, col: 4 }, PieceType.KYO, Player.SENTE);
+    expect(resultSente.valid).toBe(false);
+    expect(resultSente.errorMessage).toBe('香車を１段目に打つことはできません');
+    
+    const resultGote = canDropPieceAt(board, { row: 8, col: 4 }, PieceType.KYO, Player.GOTE);
+    expect(resultGote.valid).toBe(false);
+    expect(resultGote.errorMessage).toBe('香車を９段目に打つことはできません');
+  });
+
+  test('二歩の検出', () => {
+    const board = createEmptyBoard();
+    // 先手の歩を5筋に配置
+    setPieceAt(board, { row: 6, col: 4 }, { type: PieceType.FU, player: Player.SENTE });
+    
+    // 同じ筋に歩を打とうとする
+    const result = canDropPieceAt(board, { row: 5, col: 4 }, PieceType.FU, Player.SENTE);
+    expect(result.valid).toBe(false);
+    expect(result.errorMessage).toBe('二歩：同じ筋に歩を２つ置くことはできません');
+    
+    // 違う筋なら打てる
+    const result2 = canDropPieceAt(board, { row: 5, col: 3 }, PieceType.FU, Player.SENTE);
+    expect(result2.valid).toBe(true);
   });
 
   describe('hasNifu', () => {
@@ -156,14 +196,16 @@ describe('Move Validators', () => {
       addToHand(handPieces, Player.SENTE, PieceType.FU);
       setPieceAt(board, { row: 8, col: 4 }, { type: PieceType.OU, player: Player.SENTE });
       
-      expect(isValidDrop(board, handPieces, { row: 4, col: 4 }, PieceType.FU, Player.SENTE)).toBe(true);
+      const result = isValidDrop(board, handPieces, { row: 4, col: 4 }, PieceType.FU, Player.SENTE);
+      expect(result.valid).toBe(true);
     });
 
     test('持ち駒がなければ打てない', () => {
       const board = createEmptyBoard();
       const handPieces = createEmptyHandPieces();
       
-      expect(isValidDrop(board, handPieces, { row: 4, col: 4 }, PieceType.FU, Player.SENTE)).toBe(false);
+      const result = isValidDrop(board, handPieces, { row: 4, col: 4 }, PieceType.FU, Player.SENTE);
+      expect(result.valid).toBe(false);
     });
 
     test('二歩なら打てない', () => {
@@ -173,7 +215,8 @@ describe('Move Validators', () => {
       setPieceAt(board, { row: 6, col: 4 }, { type: PieceType.FU, player: Player.SENTE });
       setPieceAt(board, { row: 8, col: 4 }, { type: PieceType.OU, player: Player.SENTE });
       
-      expect(isValidDrop(board, handPieces, { row: 4, col: 4 }, PieceType.FU, Player.SENTE)).toBe(false);
+      const result = isValidDrop(board, handPieces, { row: 4, col: 4 }, PieceType.FU, Player.SENTE);
+      expect(result.valid).toBe(false);
     });
   });
 
@@ -201,7 +244,7 @@ describe('Move Validators', () => {
   });
 
   describe('getAllValidMoves', () => {
-    test('開始局面での合法手を取得', () => {
+    test('開始局面での合法手を取得', async () => {
       const gameState: GameState = {
         board: createEmptyBoard(),
         handPieces: createEmptyHandPieces(),
@@ -214,16 +257,17 @@ describe('Move Validators', () => {
       setPieceAt(gameState.board, { row: 6, col: 4 }, { type: PieceType.FU, player: Player.SENTE });
       setPieceAt(gameState.board, { row: 0, col: 4 }, { type: PieceType.OU, player: Player.GOTE });
       
-      const moves = getAllValidMoves(gameState);
+      const moves = await getAllValidMoves(gameState);
       
       // 歩が前に進む手と王が動く手があるはず
+      expect(moves).toBeDefined();
       expect(moves.length).toBeGreaterThan(0);
       expect(moves.some(m => m.from?.row === 6 && m.from?.col === 4 && m.to.row === 5)).toBe(true);
     });
   });
 
   describe('Checkmate and Stalemate', () => {
-    test('詰みを検出する', () => {
+    test('詰みを検出する', async () => {
       const gameState: GameState = {
         board: createEmptyBoard(),
         handPieces: createEmptyHandPieces(),
@@ -237,11 +281,11 @@ describe('Move Validators', () => {
       setPieceAt(gameState.board, { row: 8, col: 7 }, { type: PieceType.KIN, player: Player.GOTE });
       setPieceAt(gameState.board, { row: 7, col: 7 }, { type: PieceType.HI, player: Player.GOTE });
       
-      expect(isCheckmate(gameState)).toBe(true);
-      expect(isStalemate(gameState)).toBe(false);
+      expect(await isCheckmate(gameState)).toBe(true);
+      expect(await isStalemate(gameState)).toBe(false);
     });
 
-    test('ステイルメイトを検出する', () => {
+    test('ステイルメイトを検出する', async () => {
       const gameState: GameState = {
         board: createEmptyBoard(),
         handPieces: createEmptyHandPieces(),
@@ -259,7 +303,7 @@ describe('Move Validators', () => {
       
       // この状態では実際にはステイルメイトにならないが、
       // テストのために簡易的な例として
-      expect(isCheckmate(gameState)).toBe(false);
+      expect(await isCheckmate(gameState)).toBe(false);
     });
   });
 });
