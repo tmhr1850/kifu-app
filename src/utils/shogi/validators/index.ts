@@ -307,4 +307,4 @@ import { createEmptyHandPieces as createEmptyHandPiecesImport } from '../board';
 import { isInCheck } from './basic';
 
 // Re-export for external use
-export { isInCheck } from './basic';
+export { isInCheck, ValidationResult, canDropPieceAtWithError } from './basic';

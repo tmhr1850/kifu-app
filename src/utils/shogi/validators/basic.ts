@@ -10,45 +10,82 @@ import {
   getOpponentPlayer,
 } from '../board';
 
-// 指定した位置に駒を打てるかチェック
+// バリデーション結果の型定義
+export interface ValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+// 指定した位置に駒を打てるかチェック（下位互換性のため残す）
 export function canDropPieceAt(
   board: Board,
   position: Position,
   pieceType: PieceType,
   player: Player
 ): boolean {
+  const result = canDropPieceAtWithError(board, position, pieceType, player);
+  return result.valid;
+}
+
+// 指定した位置に駒を打てるかチェック（エラーメッセージ付き）
+export function canDropPieceAtWithError(
+  board: Board,
+  position: Position,
+  pieceType: PieceType,
+  player: Player
+): ValidationResult {
   // 盤面内かチェック
-  if (!isValidPosition(position)) return false;
+  if (!isValidPosition(position)) {
+    return { valid: false, error: '盤面の外には駒を置けません' };
+  }
 
   // すでに駒があるならNG
-  if (getPieceAt(board, position) !== null) return false;
+  if (getPieceAt(board, position) !== null) {
+    return { valid: false, error: 'すでに駒がある場所には置けません' };
+  }
 
   // 歩兵の場合の特殊ルール
   if (pieceType === PieceType.FU) {
     // 二歩チェック
-    if (hasNifu(board, position.col, player)) return false;
+    if (hasNifu(board, position.col, player)) {
+      return { valid: false, error: '二歩：同じ筋に歩を2枚置くことはできません' };
+    }
 
     // 行き場のない歩（最奥段）チェック
-    if (player === Player.SENTE && position.row === 0) return false;
-    if (player === Player.GOTE && position.row === 8) return false;
+    if (player === Player.SENTE && position.row === 0) {
+      return { valid: false, error: '歩を1段目に置くことはできません' };
+    }
+    if (player === Player.GOTE && position.row === 8) {
+      return { valid: false, error: '歩を9段目に置くことはできません' };
+    }
     
-    // 打ち歩詰めチェック（後で実装）
-    // TODO: 打ち歩詰めチェック
+    // 打ち歩詰めチェック
+    if (isUchifuzumeSync(board, position, player)) {
+      return { valid: false, error: '打ち歩詰め：この歩で相手の王を詰めることはできません' };
+    }
   }
 
   // 香車の場合の特殊ルール（最奥段に打てない）
   if (pieceType === PieceType.KYO) {
-    if (player === Player.SENTE && position.row === 0) return false;
-    if (player === Player.GOTE && position.row === 8) return false;
+    if (player === Player.SENTE && position.row === 0) {
+      return { valid: false, error: '香車を1段目に置くことはできません' };
+    }
+    if (player === Player.GOTE && position.row === 8) {
+      return { valid: false, error: '香車を9段目に置くことはできません' };
+    }
   }
 
   // 桂馬の場合の特殊ルール（最奥段と2段目に打てない）
   if (pieceType === PieceType.KEI) {
-    if (player === Player.SENTE && position.row <= 1) return false;
-    if (player === Player.GOTE && position.row >= 7) return false;
+    if (player === Player.SENTE && position.row <= 1) {
+      return { valid: false, error: '桂馬を1・2段目に置くことはできません' };
+    }
+    if (player === Player.GOTE && position.row >= 7) {
+      return { valid: false, error: '桂馬を8・9段目に置くことはできません' };
+    }
   }
 
-  return true;
+  return { valid: true };
 }
 
 // 二歩チェック（同じ筋に歩があるか）
@@ -140,3 +177,54 @@ export function wouldBeInCheck(
 
 // getPieceValidMovesをインポート（循環参照を避けるため）
 import { getPieceValidMoves as getPieceValidMovesImport } from '../pieces';
+
+// 打ち歩詰めチェック（同期版）
+export function isUchifuzumeSync(
+  board: Board,
+  dropPosition: Position,
+  player: Player
+): boolean {
+  // 仮の盤面を作成
+  const testBoard = board.map(row => [...row]);
+  testBoard[dropPosition.row][dropPosition.col] = { type: PieceType.FU, player };
+  
+  // 相手プレイヤーを取得
+  const opponent = getOpponentPlayer(player);
+  
+  // 相手が王手になっているかチェック
+  if (!isInCheck(testBoard, opponent)) return false;
+  
+  // 相手に合法手があるかチェック（簡略版）
+  // 王の周囲8マスへの移動をチェック
+  const kingPos = findKing(testBoard, opponent);
+  if (!kingPos) return false;
+  
+  const directions = [
+    [-1, -1], [-1, 0], [-1, 1],
+    [0, -1],           [0, 1],
+    [1, -1],  [1, 0],  [1, 1]
+  ];
+  
+  for (const [dr, dc] of directions) {
+    const newRow = kingPos.row + dr;
+    const newCol = kingPos.col + dc;
+    const newPos = { row: newRow, col: newCol };
+    
+    if (isValidPosition(newPos)) {
+      const targetPiece = getPieceAt(testBoard, newPos);
+      if (!targetPiece || targetPiece.player !== opponent) {
+        // 王がその位置に移動できるかチェック
+        const testBoard2 = testBoard.map(row => [...row]);
+        testBoard2[kingPos.row][kingPos.col] = null;
+        testBoard2[newRow][newCol] = { type: PieceType.OU, player: opponent };
+        if (!isInCheck(testBoard2, opponent)) {
+          return false; // 逃げ道があるので打ち歩詰めではない
+        }
+      }
+    }
+  }
+  
+  // TODO: 合い駒の判定など、より複雑な詰みの判定は将来実装
+  
+  return true; // 逃げ道がないので打ち歩詰め
+}

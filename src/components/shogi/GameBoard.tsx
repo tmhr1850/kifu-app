@@ -13,6 +13,7 @@ import {
 } from '@/utils/shogi/gameWithKifu';
 
 export const GameBoard: React.FC = () => {
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameStateWithKifu>(() => {
     // セッションストレージから再開するゲームIDを取得
     if (typeof window !== 'undefined') {
@@ -51,6 +52,9 @@ export const GameBoard: React.FC = () => {
 
   // 移動ハンドラー
   const handleMove = useCallback((from: Position, to: Position) => {
+    // エラーメッセージをクリア
+    setErrorMessage(null);
+    
     // 現在の盤面から駒を取得
     const piece = gameState.game.board[from.row][from.col];
     if (!piece) return;
@@ -67,6 +71,11 @@ export const GameBoard: React.FC = () => {
       setGameState(newState);
       // 自動保存
       saveCurrentGame(newState);
+    } else {
+      // TODO: より詳細なエラーメッセージを表示
+      setErrorMessage('その手は指せません');
+      // 3秒後にエラーメッセージを消す
+      setTimeout(() => setErrorMessage(null), 3000);
     }
   }, [gameState]);
 
@@ -79,6 +88,13 @@ export const GameBoard: React.FC = () => {
 
   return (
     <div className="game-board-container flex flex-col lg:flex-row gap-4 p-4">
+      {/* エラーメッセージ表示 */}
+      {errorMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg transition-opacity duration-300">
+          {errorMessage}
+        </div>
+      )}
+      
       <div className="board-section flex-1">
         <DraggableBoard 
           board={gameState.game.board}
