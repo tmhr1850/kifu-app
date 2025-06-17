@@ -5,6 +5,7 @@ import { DraggableBoard } from '@/components/shogi/DraggableBoard'
 import { Player } from '@/types/shogi'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSocket } from '@/contexts/SocketContext'
+import { ConnectionStatus } from './ConnectionStatus'
 
 interface OnlineGameBoardProps {
   roomId: string
@@ -40,7 +41,9 @@ export function OnlineGameBoard({ roomId }: OnlineGameBoardProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
+      <ConnectionStatus />
+      
       {/* 対戦相手情報 */}
       <div className="bg-gray-100 p-4 rounded-t-lg">
         <div className="flex items-center justify-between">

@@ -104,12 +104,43 @@ export function useOnlineGame() {
       })
     }
 
+    interface RoomRejoined {
+      room: {
+        id: string
+        players: Array<{
+          id: string
+          name: string
+          color: string
+        }>
+      }
+      gameState?: OnlineGameState
+    }
+    
+    const handleRoomRejoined = ({ room, gameState: rejoinedGameState }: RoomRejoined) => {
+      // 再接続後のゲーム状態の復元
+      if (rejoinedGameState) {
+        setGameState({
+          ...rejoinedGameState,
+          roomId: room.id,
+          onlineStatus: 'playing'
+        })
+        setIsMyTurn(rejoinedGameState.currentPlayer === myColor)
+      }
+      
+      // 対戦相手の情報を復元
+      const opponent = room.players.find((p) => p.id !== user.id)
+      if (opponent) {
+        setOpponentInfo({ id: opponent.id, name: opponent.name })
+      }
+    }
+
     socket.on('game_start', handleGameStart)
     socket.on('move_made', handleMoveMade)
     socket.on('time_synced', handleTimeSynced)
     socket.on('opponent_disconnected', handleOpponentDisconnected)
     socket.on('opponent_reconnected', handleOpponentReconnected)
     socket.on('game_resigned', handleGameResigned)
+    socket.on('room_rejoined', handleRoomRejoined)
 
     return () => {
       socket.off('game_start', handleGameStart)
@@ -118,8 +149,9 @@ export function useOnlineGame() {
       socket.off('opponent_disconnected', handleOpponentDisconnected)
       socket.off('opponent_reconnected', handleOpponentReconnected)
       socket.off('game_resigned', handleGameResigned)
+      socket.off('room_rejoined', handleRoomRejoined)
     }
-  }, [socket, currentRoom, user])
+  }, [socket, currentRoom, user, myColor])
 
   // 時間管理
   useEffect(() => {
