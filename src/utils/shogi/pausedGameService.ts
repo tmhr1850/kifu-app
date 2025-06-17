@@ -1,0 +1,10 @@
+// This file is deprecated. Import from storageService.ts instead
+export * from './storageService';
+
+// Re-export for backward compatibility
+export {
+  savePausedGame,
+  loadPausedGame,
+  deletePausedGame as removePausedGame,
+  PausedGame as PausedGameData
+} from './storageService';

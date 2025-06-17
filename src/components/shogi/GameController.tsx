@@ -1,21 +1,25 @@
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { GameStateWithKifu } from '@/utils/shogi/gameWithKifu';
+import { GameStateWithKifu, pauseGame } from '@/utils/shogi/gameWithKifu';
 import { endGameWithKifu, undoMoveWithKifu } from '@/utils/shogi/gameWithKifu';
 import { getGameStatus } from '@/utils/shogi/game';
 import { Player } from '@/types/shogi';
+import { ConfirmDialog } from '../kifu/ConfirmDialog';
 
 interface GameControllerProps {
   gameState: GameStateWithKifu;
   onGameStateChange: (newState: GameStateWithKifu) => void;
+  gameMode?: 'local' | 'ai' | 'online';
 }
 
 export const GameController: React.FC<GameControllerProps> = ({ 
   gameState, 
-  onGameStateChange 
+  onGameStateChange,
+  gameMode = 'local'
 }) => {
   const [showResignDialog, setShowResignDialog] = useState(false);
+  const [showPauseDialog, setShowPauseDialog] = useState(false);
   
   // 手数を計算
   const moveCount = gameState.kifu?.moves?.length || 0;
@@ -40,6 +44,16 @@ export const GameController: React.FC<GameControllerProps> = ({
       onGameStateChange(newState);
     }
   }, [gameState, onGameStateChange]);
+
+  // 対局を中断する処理
+  const handlePause = useCallback(() => {
+    pauseGame(gameState, gameMode);
+    setShowPauseDialog(false);
+    // 親コンポーネントに中断を通知（例: ホーム画面に戻る）
+    if (window.confirm('対局を中断しました。ホーム画面に戻りますか？')) {
+      window.location.href = '/';
+    }
+  }, [gameState, gameMode]);
 
   return (
     <div className="game-controller p-4 bg-gray-100 rounded-lg shadow-md">
@@ -70,7 +84,7 @@ export const GameController: React.FC<GameControllerProps> = ({
       </div>
 
       {/* 操作ボタン */}
-      <div className="control-buttons flex gap-2 justify-center">
+      <div className="control-buttons flex gap-2 justify-center flex-wrap">
         {/* 待ったボタン */}
         <button
           onClick={handleUndo}
@@ -82,6 +96,15 @@ export const GameController: React.FC<GameControllerProps> = ({
           disabled={gameState.kifu.moves.length === 0 || gameStatus.isOver}
         >
           待った
+        </button>
+
+        {/* 中断ボタン */}
+        <button
+          onClick={() => setShowPauseDialog(true)}
+          className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors"
+          disabled={gameStatus.isOver}
+        >
+          中断
         </button>
 
         {/* 投了ボタン */}
@@ -117,6 +140,18 @@ export const GameController: React.FC<GameControllerProps> = ({
           </div>
         </div>
       )}
+
+      {/* 中断確認ダイアログ */}
+      <ConfirmDialog
+        isOpen={showPauseDialog}
+        title="対局の中断"
+        message="対局を中断しますか？"
+        onConfirm={handlePause}
+        onCancel={() => setShowPauseDialog(false)}
+        confirmText="中断する"
+        cancelText="キャンセル"
+        confirmButtonClass="bg-yellow-600 text-white hover:bg-yellow-700"
+      />
 
       {/* ゲーム終了表示 */}
       {gameStatus.isOver && (
