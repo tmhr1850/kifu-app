@@ -24,10 +24,17 @@ app.prepare().then(() => {
   const io = new Server(server, {
     cors: {
       origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-      methods: ['GET', 'POST']
+      methods: ['GET', 'POST'],
+      credentials: true
     },
     pingTimeout: 60000,
-    pingInterval: 25000
+    pingInterval: 25000,
+    transports: ['websocket', 'polling'],
+    allowUpgrades: true,
+    perMessageDeflate: {
+      threshold: 1024
+    },
+    httpCompression: true
   })
 
   // Socket.io event handlers

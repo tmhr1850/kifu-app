@@ -6,6 +6,11 @@ const gameInvites = new Map()
 module.exports = (io) => {
   io.on('connection', (socket) => {
     console.log('New client connected:', socket.id)
+    
+    // 接続タイムアウトの設定
+    socket.on('ping', () => {
+      socket.emit('pong')
+    })
 
     // ルーム作成
     socket.on('create_room', (data) => {
@@ -34,27 +39,33 @@ module.exports = (io) => {
     // ルーム参加
     socket.on('join_room', (data) => {
       const { roomId, userId, playerName } = data
-      const room = rooms.get(roomId)
-      
-      if (!room) {
-        socket.emit('error', { message: 'ルームが見つかりません' })
-        return
-      }
-      
-      if (room.players.length >= 2) {
-        socket.emit('error', { message: 'ルームは満員です' })
-        return
-      }
+      try {
+        const room = rooms.get(roomId)
+        
+        if (!room) {
+          socket.emit('error', { message: 'ルームが見つかりません' })
+          return
+        }
+        
+        if (room.players.length >= 2 && !room.players.find(p => p.id === userId)) {
+          socket.emit('error', { message: 'ルームは満員です' })
+          return
+        }
 
-      // 再接続チェック
-      const existingPlayer = room.players.find(p => p.id === userId)
-      if (existingPlayer) {
-        existingPlayer.socketId = socket.id
-        playerSockets.set(socket.id, { roomId, userId })
-        socket.join(roomId)
-        socket.emit('reconnected', { room })
-        socket.to(roomId).emit('opponent_reconnected', { playerId: userId })
-        return
+        // 再接続チェック
+        const existingPlayer = room.players.find(p => p.id === userId)
+        if (existingPlayer) {
+          existingPlayer.socketId = socket.id
+          existingPlayer.connected = true
+          playerSockets.set(socket.id, { roomId, userId })
+          socket.join(roomId)
+          socket.emit('reconnected', { room, gameState: room.gameState })
+          socket.to(roomId).emit('opponent_reconnected', { playerId: userId })
+          return
+        }
+      } catch (error) {
+        console.error('Error in join_room:', error)
+        socket.emit('error', { message: 'ルーム参加中にエラーが発生しました' })
       }
       
       // 新規参加
@@ -74,6 +85,38 @@ module.exports = (io) => {
       // ゲーム開始
       if (room.players.length === 2) {
         io.to(roomId).emit('game_start', { room })
+      }
+    })
+
+    // ルーム再参加（再接続時）
+    socket.on('rejoin_room', (data) => {
+      try {
+        const { roomId, userId } = data
+        const room = rooms.get(roomId)
+        
+        if (!room) {
+          socket.emit('error', { message: 'ルームが見つかりません' })
+          return
+        }
+        
+        const player = room.players.find(p => p.id === userId)
+        if (!player) {
+          socket.emit('error', { message: 'このルームのメンバーではありません' })
+          return
+        }
+        
+        // プレイヤー情報を更新
+        player.socketId = socket.id
+        player.connected = true
+        playerSockets.set(socket.id, { roomId, userId })
+        socket.join(roomId)
+        
+        // ゲーム状態を復元
+        socket.emit('room_rejoined', { room, gameState: room.gameState })
+        socket.to(roomId).emit('opponent_reconnected', { playerId: userId })
+      } catch (error) {
+        console.error('Error in rejoin_room:', error)
+        socket.emit('error', { message: 'ルーム再参加中にエラーが発生しました' })
       }
     })
 
