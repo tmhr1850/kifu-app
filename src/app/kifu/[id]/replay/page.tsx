@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { loadKifuRecord } from '@/utils/shogi/storageService'
-import KifuReplayBoard from '@/components/kifu/KifuReplayBoard'
+import KifuReplayBoardWithVariations from '@/components/kifu/KifuReplayBoardWithVariations'
 import { KifuRecord } from '@/types/kifu'
 import { ArrowLeft } from 'lucide-react'
 
@@ -73,7 +73,7 @@ export default function KifuReplayPage() {
           </Link>
         </div>
 
-        <KifuReplayBoard kifu={kifu} />
+        <KifuReplayBoardWithVariations kifu={kifu} allowEditing={true} />
       </div>
     </div>
   )
