@@ -40,7 +40,7 @@ export default function PromotionModal({
       aria-modal="true"
       aria-labelledby="promotion-title"
     >
-      <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-2xl">
+      <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4 shadow-2xl">
         <h2 
           id="promotion-title"
           className="text-xl font-bold text-center mb-4"
@@ -57,7 +57,7 @@ export default function PromotionModal({
             <button
               ref={cancelButtonRef}
               onClick={onCancel}
-              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="px-4 sm:px-6 py-3 text-sm sm:text-base bg-gray-200 hover:bg-gray-300 active:bg-gray-400 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
               aria-label="成らない"
             >
               成らない
@@ -66,7 +66,7 @@ export default function PromotionModal({
           <button
             ref={promoteButtonRef}
             onClick={onPromote}
-            className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400"
+            className="px-4 sm:px-6 py-3 text-sm sm:text-base bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 touch-manipulation"
             aria-label="成る"
             autoFocus={!canCancel}
           >

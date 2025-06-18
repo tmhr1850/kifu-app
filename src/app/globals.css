@@ -28,6 +28,9 @@ body {
 @layer utilities {
   .board-cell {
     @apply relative;
+    /* Touch-friendly tap target size */
+    min-height: 44px;
+    min-width: 44px;
   }
 
   .piece-move-animation {
@@ -40,5 +43,84 @@ body {
 
   body.dragging * {
     cursor: grabbing !important;
+  }
+
+  /* Mobile-specific styles */
+  @media (max-width: 768px) {
+    .board-cell {
+      min-height: 36px;
+      min-width: 36px;
+    }
+  }
+
+  /* Touch action optimization */
+  .board-container {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Active state for touch feedback */
+  .board-cell:active {
+    @apply bg-blue-100 dark:bg-blue-900;
+  }
+
+  /* Pinch-to-zoom container */
+  .pinch-zoom-container {
+    overflow: hidden;
+    position: relative;
+    touch-action: none;
+  }
+
+  /* Board scaling for mobile */
+  @media (max-width: 640px) {
+    .shogi-board {
+      max-width: 100vw;
+      padding: 0.5rem;
+    }
+  }
+
+  /* Landscape orientation specific */
+  @media (orientation: landscape) and (max-height: 768px) {
+    .board-cell {
+      min-height: 32px;
+      min-width: 32px;
+    }
+  }
+
+  /* Touch-friendly piece styles */
+  .piece-touchable {
+    @apply cursor-pointer;
+    position: relative;
+    z-index: 10;
+  }
+
+  .piece-touchable::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    z-index: -1;
+  }
+
+  /* Visual feedback for selected pieces */
+  .piece-selected {
+    @apply ring-2 ring-blue-500 rounded-sm;
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
   }
 }
