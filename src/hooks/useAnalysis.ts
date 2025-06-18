@@ -13,6 +13,7 @@ import { AnalysisEngine } from '@/utils/ai/analysisEngine';
 interface UseAnalysisReturn {
   currentAnalysis: PositionAnalysis | null;
   evaluationHistory: EvaluationHistoryEntry[];
+  analysisCache: Map<number, PositionAnalysis>;
   mode: AnalysisMode;
   settings: AnalysisSettings;
   isAnalyzing: boolean;
@@ -29,6 +30,7 @@ export function useAnalysis(
 ): UseAnalysisReturn {
   const [currentAnalysis, setCurrentAnalysis] = useState<PositionAnalysis | null>(null);
   const [evaluationHistory, setEvaluationHistory] = useState<EvaluationHistoryEntry[]>([]);
+  const [analysisCache, setAnalysisCache] = useState<Map<number, PositionAnalysis>>(new Map());
   const [mode, setMode] = useState<AnalysisMode>('off');
   const [settings, setSettings] = useState<AnalysisSettings>({
     depth: 5,
@@ -58,10 +60,18 @@ export function useAnalysis(
       const analysis = await engineRef.current.analyzePosition(gameState, settings);
       setCurrentAnalysis(analysis);
 
+      // キャッシュに追加
+      const moveNumber = gameState.moveHistory.length;
+      setAnalysisCache(prev => {
+        const newCache = new Map(prev);
+        newCache.set(moveNumber, analysis);
+        return newCache;
+      });
+
       // 履歴に追加
       if (analysis.bestMove) {
         const historyEntry: EvaluationHistoryEntry = {
-          moveNumber: gameState.moveHistory.length,
+          moveNumber: moveNumber,
           score: analysis.score,
           move: analysis.bestMove
         };
@@ -113,6 +123,7 @@ export function useAnalysis(
   const clearHistory = useCallback(() => {
     setEvaluationHistory([]);
     setCurrentAnalysis(null);
+    setAnalysisCache(new Map());
     engineRef.current?.clearCache();
   }, []);
 
@@ -135,6 +146,7 @@ export function useAnalysis(
   return {
     currentAnalysis,
     evaluationHistory,
+    analysisCache,
     mode,
     settings,
     isAnalyzing,

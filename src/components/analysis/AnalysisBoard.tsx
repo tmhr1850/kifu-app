@@ -7,6 +7,7 @@ import { EvaluationDisplay } from './EvaluationDisplay';
 import { RecommendedMoves } from './RecommendedMoves';
 import { EvaluationGraph } from './EvaluationGraph';
 import { AnalysisModePanel } from './AnalysisModePanel';
+import { AnalysisExportDialog } from './AnalysisExportDialog';
 import { useAnalysis } from '@/hooks/useAnalysis';
 
 interface AnalysisBoardProps {
@@ -26,10 +27,12 @@ export const AnalysisBoard: React.FC<AnalysisBoardProps> = ({
 }) => {
   const [highlightedMove, setHighlightedMove] = useState<Move | null>(null);
   const [highlightedSquares, setHighlightedSquares] = useState<Array<{row: number; col: number}>>([]);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const {
     currentAnalysis,
     evaluationHistory,
+    analysisCache,
     mode,
     settings,
     isAnalyzing,
@@ -66,7 +69,16 @@ export const AnalysisBoard: React.FC<AnalysisBoardProps> = ({
         {/* 左側：盤面 */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4">局面分析</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">局面分析</h2>
+              <button
+                onClick={() => setShowExportDialog(true)}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                disabled={evaluationHistory.length === 0}
+              >
+                分析結果をエクスポート
+              </button>
+            </div>
             <SimpleBoard
               gameState={gameState}
               highlightedSquares={highlightedSquares}
@@ -122,6 +134,17 @@ export const AnalysisBoard: React.FC<AnalysisBoardProps> = ({
           />
         </div>
       </div>
+
+      {/* エクスポートダイアログ */}
+      <AnalysisExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        evaluationHistory={evaluationHistory}
+        analyses={analysisCache}
+        metadata={{
+          analysisSettings: settings
+        }}
+      />
     </div>
   );
 };

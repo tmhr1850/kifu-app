@@ -5,6 +5,8 @@ import { minimax, cancelSearch } from './minimax';
 export class ShogiAIEngine implements AIEngine {
   private worker: Worker | null = null;
   private isEvaluating = false;
+  private workerResolve: ((result: EvaluationResult) => void) | null = null;
+  private workerReject: ((error: Error) => void) | null = null;
 
   constructor() {
     // Web Worker対応チェック
@@ -14,13 +16,37 @@ export class ShogiAIEngine implements AIEngine {
   }
 
   private initWorker(): void {
-    try {
-      // Web Workerの初期化は後で実装
-      // this.worker = new Worker(new URL('./worker.ts', import.meta.url));
-      // this.setupWorkerHandlers();
-    } catch (error) {
-      console.warn('Web Worker initialization failed, falling back to main thread', error);
+    // Next.js環境でのWeb Worker対応
+    if (typeof Worker !== 'undefined' && typeof window !== 'undefined') {
+      try {
+        this.worker = new Worker(new URL('./worker.ts', import.meta.url));
+        this.setupWorkerHandlers();
+      } catch (error) {
+        console.warn('Web Worker initialization failed, falling back to main thread', error);
+        this.worker = null;
+      }
     }
+  }
+
+  private setupWorkerHandlers(): void {
+    if (!this.worker) return;
+
+    this.worker.addEventListener('message', (event: MessageEvent<AIWorkerMessage>) => {
+      if (event.data.type === 'RESULT' && this.workerResolve) {
+        this.workerResolve(event.data.result!);
+        this.workerResolve = null;
+        this.workerReject = null;
+      }
+    });
+
+    this.worker.addEventListener('error', (error) => {
+      console.error('Worker error:', error);
+      if (this.workerReject) {
+        this.workerReject(error);
+        this.workerResolve = null;
+        this.workerReject = null;
+      }
+    });
   }
 
   async evaluate(gameState: GameState, settings: AISettings): Promise<EvaluationResult> {
