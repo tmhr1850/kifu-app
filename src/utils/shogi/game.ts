@@ -28,6 +28,7 @@ import {
   detectRepetition,
   PositionHistory,
 } from './repetition';
+import { switchPlayerClock } from './timeManager';
 
 // 新しいゲームを開始
 export function createNewGame(): GameState {
@@ -97,12 +98,22 @@ export function makeMove(gameState: GameState, move: Move): GameState | null {
   // 次のプレイヤーに交代
   const nextPlayer = getOpponentPlayer(gameState.currentPlayer);
 
+  // 時計の更新を処理
+  let clockState = gameState.clockState;
+  const timeControl = gameState.timeControl;
+  
+  if (clockState && timeControl) {
+    clockState = switchPlayerClock(clockState, gameState.currentPlayer, timeControl);
+  }
+
   return {
     board: newBoard,
     handPieces: newHandPieces,
     currentPlayer: nextPlayer,
     moveHistory: newMoveHistory,
     positionHistory: gameState.positionHistory,
+    clockState,
+    timeControl,
   };
 }
 

@@ -9,6 +9,7 @@ export interface GameInfo {
   sente: string;
   gote: string;
   result?: GameResult;
+  endReason?: string;
   handicap?: string;
   timeLimit?: TimeLimit;
 }
