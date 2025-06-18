@@ -15,10 +15,10 @@ export const Board: React.FC<BoardProps> = ({ onPieceClick, onCellClick }) => {
   const rowKanji = ['一', '二', '三', '四', '五', '六', '七', '八', '九']
 
   return (
-    <div className="board-container max-w-screen-sm mx-auto p-4">
+    <div className="board-container max-w-screen-sm mx-auto p-2 sm:p-4">
       <div className="board-wrapper aspect-square">
         <div className="flex">
-          <div className="w-8" />
+          <div className="w-6 sm:w-8" />
           <div className="flex-1 flex">
             {colNumbers.map((num) => (
               <div key={num} className="flex-1 text-center text-xs sm:text-sm font-semibold">
@@ -29,7 +29,7 @@ export const Board: React.FC<BoardProps> = ({ onPieceClick, onCellClick }) => {
         </div>
         
         <div className="flex">
-          <div className="w-8 flex flex-col">
+          <div className="w-6 sm:w-8 flex flex-col">
             {rowKanji.map((kanji) => (
               <div key={kanji} className="flex-1 flex items-center justify-center text-xs sm:text-sm font-semibold">
                 {kanji}
@@ -37,7 +37,7 @@ export const Board: React.FC<BoardProps> = ({ onPieceClick, onCellClick }) => {
             ))}
           </div>
           
-          <div className="board flex-1 grid grid-cols-9 gap-0.5 bg-amber-800 p-1">
+          <div className="board shogi-board flex-1 grid grid-cols-9 gap-0.5 bg-amber-800 p-1">
             {boardState.map((row, rowIndex) => 
               row.map((piece, colIndex) => (
                 <div

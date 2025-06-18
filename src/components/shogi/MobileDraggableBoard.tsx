@@ -7,13 +7,13 @@ import { Position, getValidMoves, isValidMove } from '@/utils/shogi/moveRules'
 import PromotionModal from './PromotionModal'
 import { canPromotePiece, canPromoteAt, mustPromoteAt, promotePiece, getPieceDisplayName } from '@/utils/shogi/pieceUtils'
 
-interface DraggableBoardProps {
+interface MobileDraggableBoardProps {
   board?: (BoardPiece | null)[][]
   onMove?: (from: Position, to: Position) => void
   lastMove?: { from: Position; to: Position } | null
 }
 
-export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, lastMove }) => {
+export const MobileDraggableBoard: React.FC<MobileDraggableBoardProps> = ({ board, onMove, lastMove }) => {
   const [boardState, setBoardState] = useState(board || getInitialBoard())
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null)
   const [validMoves, setValidMoves] = useState<Position[]>([])
@@ -21,7 +21,14 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [promotionChoice, setPromotionChoice] = useState<{ from: Position, to: Position, piece: BoardPiece } | null>(null)
+  
+  // Pinch-to-zoom state
+  const [scale, setScale] = useState(1)
+  const [isPinching, setIsPinching] = useState(false)
+  const [lastPinchDistance, setLastPinchDistance] = useState(0)
+  
   const boardRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const touchStartTime = useRef(0)
 
@@ -44,7 +51,6 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
-
 
   const cancelSelection = () => {
     setSelectedPosition(null)
@@ -80,7 +86,64 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
         checkPromotion(selectedPosition, { row, col }, piece)
       }
     }
-  }, [selectedPosition, boardState, checkPromotion])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPosition, boardState])
+
+  const getPinchDistance = (touches: TouchList) => {
+    const dx = touches[0].clientX - touches[1].clientX
+    const dy = touches[0].clientY - touches[1].clientY
+    return Math.sqrt(dx * dx + dy * dy)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent, row: number, col: number, piece: BoardPiece) => {
+    touchStartTime.current = Date.now()
+    
+    if (e.touches.length === 2) {
+      // Start pinch-to-zoom
+      e.preventDefault()
+      setIsPinching(true)
+      setLastPinchDistance(getPinchDistance(e.touches))
+      return
+    }
+    
+    if (e.touches.length === 1 && !isPinching) {
+      handleDragStart(e, row, col, piece)
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && containerRef.current) {
+      e.preventDefault()
+      const currentDistance = getPinchDistance(e.touches)
+      const delta = currentDistance - lastPinchDistance
+      
+      const newScale = Math.min(Math.max(scale + delta * 0.01, 0.8), 3)
+      setScale(newScale)
+      setLastPinchDistance(currentDistance)
+    }
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchDuration = Date.now() - touchStartTime.current
+    
+    if (e.touches.length === 0) {
+      setIsPinching(false)
+      
+      // If it was a quick tap (not a drag), handle as click
+      if (touchDuration < 200 && !isDragging.current) {
+        const touch = e.changedTouches[0]
+        const target = document.elementFromPoint(touch.clientX, touch.clientY)
+        if (target) {
+          target.dispatchEvent(new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            clientX: touch.clientX,
+            clientY: touch.clientY
+          }))
+        }
+      }
+    }
+  }
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent, row: number, col: number, piece: BoardPiece) => {
     e.preventDefault()
@@ -89,11 +152,6 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
     const rect = (e.target as HTMLElement).getBoundingClientRect()
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
-    
-    // Record touch start time for tap detection
-    if ('touches' in e) {
-      touchStartTime.current = Date.now()
-    }
     
     setDragOffset({
       x: clientX - rect.left - rect.width / 2,
@@ -118,8 +176,12 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
     const cellWidth = boardRect.width / 9
     const cellHeight = boardRect.height / 9
 
-    const col = Math.floor((clientX - boardRect.left) / cellWidth)
-    const row = Math.floor((clientY - boardRect.top) / cellHeight)
+    // Account for scale when calculating drop position
+    const adjustedX = (clientX - boardRect.left) / scale
+    const adjustedY = (clientY - boardRect.top) / scale
+
+    const col = Math.floor(adjustedX / (cellWidth / scale))
+    const row = Math.floor(adjustedY / (cellHeight / scale))
 
     if (row >= 0 && row < 9 && col >= 0 && col < 9) {
       const targetCol = 8 - col
@@ -143,14 +205,14 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
     setValidMoves([])
     setDraggedPiece(null)
     isDragging.current = false
-  }, [draggedPiece, boardState, checkPromotion])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draggedPiece, boardState, scale])
 
   const movePiece = useCallback((from: Position, to: Position, shouldPromote: boolean = false) => {
     const newBoard = boardState.map(row => [...row])
     const piece = newBoard[from.row][from.col]
     
     if (piece) {
-      // 成り処理
       if (shouldPromote && canPromotePiece(piece.type)) {
         const promotedType = promotePiece(piece.type)
         newBoard[to.row][to.col] = { ...piece, type: promotedType, promoted: true }
@@ -173,31 +235,26 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
   }, [boardState, onMove])
 
   const checkPromotion = useCallback((from: Position, to: Position, piece: BoardPiece) => {
-    // 既に成っている駒は成れない
     if (piece.promoted) {
       movePiece(from, to, false)
       return
     }
 
-    // 成れる駒かチェック
     if (!canPromotePiece(piece.type)) {
       movePiece(from, to, false)
       return
     }
 
-    // 成れる位置かチェック
     if (!canPromoteAt(from.row, to.row, piece.isGote)) {
       movePiece(from, to, false)
       return
     }
 
-    // 強制成りかチェック
     if (mustPromoteAt(piece.type, to.row, piece.isGote)) {
       movePiece(from, to, true)
       return
     }
 
-    // 成り選択モーダルを表示
     setPromotionChoice({ from, to, piece })
   }, [movePiece])
 
@@ -218,7 +275,7 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
   }
 
   useEffect(() => {
-    if (draggedPiece) {
+    if (draggedPiece && !isPinching) {
       const handleMouseMove = (e: MouseEvent) => {
         setMousePosition({ x: e.clientX, y: e.clientY })
       }
@@ -227,35 +284,47 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
         handleDropAtPosition(e.clientX, e.clientY)
       }
 
-      const handleTouchMove = (e: TouchEvent) => {
-        e.preventDefault()
-        const touch = e.touches[0]
-        setMousePosition({ x: touch.clientX, y: touch.clientY })
+      const handleTouchMoveGlobal = (e: TouchEvent) => {
+        if (e.touches.length === 1) {
+          e.preventDefault()
+          const touch = e.touches[0]
+          setMousePosition({ x: touch.clientX, y: touch.clientY })
+        }
       }
 
-      const handleTouchEnd = (e: TouchEvent) => {
-        e.preventDefault()
-        const touch = e.changedTouches[0]
-        handleDropAtPosition(touch.clientX, touch.clientY)
+      const handleTouchEndGlobal = (e: TouchEvent) => {
+        if (e.changedTouches.length > 0) {
+          e.preventDefault()
+          const touch = e.changedTouches[0]
+          handleDropAtPosition(touch.clientX, touch.clientY)
+        }
       }
 
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
-      document.addEventListener('touchmove', handleTouchMove, { passive: false })
-      document.addEventListener('touchend', handleTouchEnd, { passive: false })
+      document.addEventListener('touchmove', handleTouchMoveGlobal, { passive: false })
+      document.addEventListener('touchend', handleTouchEndGlobal, { passive: false })
 
       return () => {
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
-        document.removeEventListener('touchmove', handleTouchMove)
-        document.removeEventListener('touchend', handleTouchEnd)
+        document.removeEventListener('touchmove', handleTouchMoveGlobal)
+        document.removeEventListener('touchend', handleTouchEndGlobal)
       }
     }
-  }, [draggedPiece, handleDropAtPosition])
+  }, [draggedPiece, isPinching, handleDropAtPosition])
 
   return (
-    <div className="board-container max-w-screen-sm mx-auto p-2 sm:p-4">
-      <div className="board-wrapper aspect-square">
+    <div 
+      ref={containerRef}
+      className="board-container pinch-zoom-container max-w-screen-sm mx-auto p-2 sm:p-4"
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div 
+        className="board-wrapper aspect-square transition-transform"
+        style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}
+      >
         <div className="flex">
           <div className="w-6 sm:w-8" />
           <div className="flex-1 flex">
@@ -293,24 +362,27 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
                     className={`
                       board-cell bg-amber-200 aspect-square flex items-center justify-center
                       transition-all duration-200
-                      ${isHighlight ? 'bg-green-300 hover:bg-green-400' : 'hover:bg-amber-300'}
-                      ${isSelect ? 'bg-amber-400' : ''}
+                      ${isHighlight ? 'bg-green-300' : ''}
+                      ${isSelect ? 'bg-amber-400 piece-selected' : ''}
                       ${isLastMove ? 'ring-2 ring-blue-500 ring-inset' : ''}
                       ${!piece && !isHighlight ? 'cursor-default' : 'cursor-pointer'}
                     `}
                     onClick={() => {
-                      if (piece) {
-                        handlePieceClick(rowIndex, actualCol, piece)
-                      } else if (isHighlight) {
-                        handleCellClick(rowIndex, actualCol)
+                      if (!isPinching && !isDragging.current) {
+                        if (piece) {
+                          handlePieceClick(rowIndex, actualCol, piece)
+                        } else if (isHighlight) {
+                          handleCellClick(rowIndex, actualCol)
+                        }
                       }
                     }}
                   >
                     {piece && (
                       <div
-                        className={`${draggedPiece?.position.row === rowIndex && draggedPiece?.position.col === actualCol ? 'opacity-50' : ''}`}
-                        onMouseDown={(e) => handleDragStart(e, rowIndex, actualCol, piece)}
-                        onTouchStart={(e) => handleDragStart(e, rowIndex, actualCol, piece)}
+                        className={`piece-touchable w-full h-full flex items-center justify-center
+                          ${draggedPiece?.position.row === rowIndex && draggedPiece?.position.col === actualCol ? 'opacity-50' : ''}`}
+                        onMouseDown={(e) => !isPinching && handleDragStart(e, rowIndex, actualCol, piece)}
+                        onTouchStart={(e) => handleTouchStart(e, rowIndex, actualCol, piece)}
                       >
                         <Piece
                           type={piece.type}
@@ -326,13 +398,13 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
         </div>
       </div>
 
-      {draggedPiece && (
+      {draggedPiece && !isPinching && (
         <div
           className="fixed pointer-events-none z-50"
           style={{
             left: mousePosition.x - dragOffset.x,
             top: mousePosition.y - dragOffset.y,
-            transform: 'translate(-50%, -50%)'
+            transform: 'translate(-50%, -50%) scale(1.2)'
           }}
         >
           <Piece
