@@ -1,18 +1,26 @@
 import { GameState, Move } from '@/types/shogi';
-import { PositionAnalysis, AnalysisSettings } from '@/types/analysis';
+import { PositionAnalysis, AnalysisSettings, MoveQuality, MoveQualityThresholds } from '@/types/analysis';
 import { AIDifficulty } from './types';
-import { ShogiAI } from './engine';
+import { ShogiAIEngine } from './engine';
 import { getAllValidMovesSync } from '../shogi/validators';
 import { makeMove } from '../shogi/game';
 
 export class AnalysisEngine {
-  private ai: ShogiAI;
+  private ai: ShogiAIEngine;
   private cache: Map<string, PositionAnalysis> = new Map();
   private isAnalyzing = false;
   private abortController: AbortController | null = null;
+  
+  // デフォルトの手の品質判定基準（センチポーン単位）
+  private static readonly DEFAULT_QUALITY_THRESHOLDS: MoveQualityThresholds = {
+    brilliant: 300,    // 3駒分以上の改善
+    good: 100,        // 1駒分以上の改善
+    mistake: -200,    // 2駒分以上の悪化
+    blunder: -500,    // 5駒分以上の悪化
+  };
 
   constructor() {
-    this.ai = new ShogiAI();
+    this.ai = new ShogiAIEngine();
   }
 
   /**
@@ -147,6 +155,69 @@ export class AnalysisEngine {
     const capturedStr = JSON.stringify(gameState.handPieces);
     const settingsStr = `${settings.depth}-${settings.multiPV}`;
     return `${boardStr}-${capturedStr}-${gameState.currentPlayer}-${settingsStr}`;
+  }
+
+  /**
+   * 手の品質を判定
+   * @param moveScore 実際に指された手の評価値
+   * @param bestScore 最善手の評価値
+   * @param isPlayerMove プレイヤーの手かどうか
+   * @param thresholds カスタム閾値（省略時はデフォルト使用）
+   */
+  detectMoveQuality(
+    moveScore: number,
+    bestScore: number,
+    isPlayerMove: boolean,
+    thresholds: MoveQualityThresholds = AnalysisEngine.DEFAULT_QUALITY_THRESHOLDS
+  ): MoveQuality {
+    // 評価値の差分を計算（プレイヤー視点）
+    const scoreDiff = isPlayerMove ? (moveScore - bestScore) : (bestScore - moveScore);
+    
+    // 閾値に基づいて品質を判定
+    if (scoreDiff >= thresholds.brilliant) {
+      return 'brilliant';
+    } else if (scoreDiff >= thresholds.good) {
+      return 'good';
+    } else if (scoreDiff <= thresholds.blunder) {
+      return 'blunder';
+    } else if (scoreDiff <= thresholds.mistake) {
+      return 'mistake';
+    } else {
+      return 'normal';
+    }
+  }
+
+  /**
+   * 複数の手に対して品質を一括判定
+   */
+  async detectMovesQuality(
+    gameStates: GameState[],
+    moves: Move[],
+    settings: AnalysisSettings
+  ): Promise<MoveQuality[]> {
+    const qualities: MoveQuality[] = [];
+    
+    for (let i = 0; i < moves.length; i++) {
+      const currentState = gameStates[i];
+      const move = moves[i];
+      
+      // 現在の局面を分析して最善手を取得
+      const analysis = await this.analyzePosition(currentState, settings);
+      const bestScore = analysis.score;
+      
+      // 実際に指された手の後の局面を評価
+      const nextState = this.applyMove(currentState, move);
+      const moveAnalysis = await this.analyzePosition(nextState, settings);
+      const moveScore = -moveAnalysis.score; // 相手視点の評価値なので反転
+      
+      // 手番を考慮して品質判定
+      const isPlayerMove = currentState.currentPlayer === 'sente';
+      const quality = this.detectMoveQuality(moveScore, bestScore, isPlayerMove);
+      
+      qualities.push(quality);
+    }
+    
+    return qualities;
   }
 
   /**

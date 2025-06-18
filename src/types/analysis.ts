@@ -25,6 +25,18 @@ export interface EvaluationHistoryEntry {
   score: number;                   // 評価値
   move: Move;                      // 指し手
   fen?: string;                    // 局面のFEN表記
+  quality?: MoveQuality;           // 手の品質判定
+}
+
+// 手の品質判定
+export type MoveQuality = 'brilliant' | 'good' | 'normal' | 'mistake' | 'blunder';
+
+// 手の品質判定基準
+export interface MoveQualityThresholds {
+  brilliant: number;               // 素晴らしい手 (評価値改善 >= このしきい値)
+  good: number;                    // 良い手 (評価値改善 >= このしきい値)
+  mistake: number;                 // 悪手 (評価値悪化 >= このしきい値)
+  blunder: number;                 // 大悪手 (評価値悪化 >= このしきい値)
 }
 
 // 分析モード

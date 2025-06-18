@@ -76,10 +76,29 @@ export const EvaluationGraph: React.FC<EvaluationGraphProps> = ({
           },
           fill: true,
           tension: 0.3,
-          pointRadius: 4,
-          pointHoverRadius: 6,
+          pointRadius: (context: { dataIndex: number }) => {
+            const entry = history[context.dataIndex];
+            if (!entry) return 4;
+            // 手の品質に応じてポイントサイズを変更
+            if (entry.quality === 'brilliant' || entry.quality === 'blunder') return 8;
+            if (entry.quality === 'good' || entry.quality === 'mistake') return 6;
+            return 4;
+          },
+          pointHoverRadius: 8,
           pointBackgroundColor: (context: { dataIndex: number }) => {
-            return context.dataIndex === currentMove ? 'rgb(239, 68, 68)' : 'rgb(59, 130, 246)';
+            const idx = context.dataIndex;
+            const entry = history[idx];
+            // 現在の手は赤
+            if (idx === currentMove) return 'rgb(239, 68, 68)';
+            // 手の品質に応じて色を変更
+            if (!entry) return 'rgb(59, 130, 246)';
+            switch (entry.quality) {
+              case 'brilliant': return 'rgb(34, 197, 94)'; // 緑
+              case 'good': return 'rgb(59, 130, 246)'; // 青
+              case 'mistake': return 'rgb(251, 146, 60)'; // オレンジ
+              case 'blunder': return 'rgb(239, 68, 68)'; // 赤
+              default: return 'rgb(59, 130, 246)'; // デフォルト青
+            }
           },
           pointBorderColor: '#fff',
           pointBorderWidth: 2,
@@ -104,7 +123,24 @@ export const EvaluationGraph: React.FC<EvaluationGraphProps> = ({
           label: (context: TooltipItem<'line'>) => {
             const value = context.parsed.y;
             const sign = value >= 0 ? '+' : '';
-            return `評価値: ${sign}${value.toFixed(1)}`;
+            const entry = history[context.dataIndex];
+            let label = `評価値: ${sign}${value.toFixed(1)}`;
+            
+            if (entry?.quality) {
+              const qualityLabels = {
+                brilliant: '素晴らしい手',
+                good: '良い手',
+                mistake: '悪手',
+                blunder: '大悪手',
+                normal: ''
+              };
+              const qualityLabel = qualityLabels[entry.quality];
+              if (qualityLabel) {
+                label += ` [${qualityLabel}]`;
+              }
+            }
+            
+            return label;
           },
         },
       },
@@ -165,6 +201,26 @@ export const EvaluationGraph: React.FC<EvaluationGraphProps> = ({
         <span className="text-blue-600 font-semibold">先手優勢 ↑</span>
         <span>互角</span>
         <span className="text-red-600 font-semibold">↓ 後手優勢</span>
+      </div>
+      
+      {/* 凡例 */}
+      <div className="mt-2 flex flex-wrap gap-3 text-xs">
+        <div className="flex items-center">
+          <div className="w-2 h-2 rounded-full bg-green-500 mr-1"></div>
+          <span>素晴らしい手</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-2 h-2 rounded-full bg-blue-500 mr-1"></div>
+          <span>良い手 / 通常</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-2 h-2 rounded-full bg-orange-400 mr-1"></div>
+          <span>悪手</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-2 h-2 rounded-full bg-red-500 mr-1"></div>
+          <span>大悪手 / 現在</span>
+        </div>
       </div>
 
       {/* 転換点の表示（将来的に実装） */}
