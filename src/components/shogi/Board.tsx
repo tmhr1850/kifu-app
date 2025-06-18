@@ -37,12 +37,25 @@ export const Board: React.FC<BoardProps> = ({ onPieceClick, onCellClick }) => {
             ))}
           </div>
           
-          <div className="board shogi-board flex-1 grid grid-cols-9 gap-0.5 bg-amber-800 p-1">
+          <div 
+            className="board shogi-board flex-1 grid grid-cols-9 gap-0.5 p-1"
+            style={{ backgroundColor: 'var(--board-bg)' }}
+          >
             {boardState.map((row, rowIndex) => 
               row.map((piece, colIndex) => (
                 <div
                   key={`${rowIndex}-${colIndex}`}
-                  className="board-cell bg-amber-200 aspect-square flex items-center justify-center hover:bg-amber-300 transition-colors"
+                  className="board-cell aspect-square flex items-center justify-center transition-colors"
+                  style={{ 
+                    backgroundColor: 'var(--board-bg)',
+                    borderColor: 'var(--board-grid)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--square-hover)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--board-bg)'
+                  }}
                   onClick={() => {
                     if (piece && onPieceClick) {
                       onPieceClick(rowIndex, colIndex, piece)

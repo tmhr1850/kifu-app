@@ -347,7 +347,8 @@ export const MobileDraggableBoard: React.FC<MobileDraggableBoardProps> = ({ boar
           
           <div 
             ref={boardRef}
-            className="board shogi-board flex-1 grid grid-cols-9 gap-0.5 bg-amber-800 p-1 relative"
+            className="board shogi-board flex-1 grid grid-cols-9 gap-0.5 p-1 relative"
+            style={{ backgroundColor: 'var(--board-bg)' }}
           >
             {boardState.map((row, rowIndex) => 
               row.map((piece, colIndex) => {
@@ -360,13 +361,27 @@ export const MobileDraggableBoard: React.FC<MobileDraggableBoardProps> = ({ boar
                   <div
                     key={`${rowIndex}-${colIndex}`}
                     className={`
-                      board-cell bg-amber-200 aspect-square flex items-center justify-center
+                      board-cell aspect-square flex items-center justify-center
                       transition-all duration-200
                       ${isHighlight ? 'bg-green-300' : ''}
-                      ${isSelect ? 'bg-amber-400 piece-selected' : ''}
+                      ${isSelect ? 'ring-2 ring-yellow-500 piece-selected' : ''}
                       ${isLastMove ? 'ring-2 ring-blue-500 ring-inset' : ''}
                       ${!piece && !isHighlight ? 'cursor-default' : 'cursor-pointer'}
                     `}
+                    style={{
+                      backgroundColor: isHighlight ? undefined : 'var(--board-bg)',
+                      borderColor: 'var(--board-grid)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isHighlight && !isSelect) {
+                        e.currentTarget.style.backgroundColor = 'var(--square-hover)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isHighlight && !isSelect) {
+                        e.currentTarget.style.backgroundColor = 'var(--board-bg)'
+                      }
+                    }}
                     onClick={() => {
                       if (!isPinching && !isDragging.current) {
                         if (piece) {

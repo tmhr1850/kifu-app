@@ -3,6 +3,14 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Board theme variables */
+  --board-bg: #d4a574;
+  --board-grid: #8b6f47;
+  --square-hover: rgba(0, 0, 0, 0.1);
+  --piece-text: #000000;
+  --piece-bg: #ffffff;
+  --piece-promoted-bg: #ffeb3b;
 }
 
 @theme inline {
@@ -10,6 +18,14 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Theme colors as Tailwind utilities */
+  --color-board-bg: var(--board-bg);
+  --color-board-grid: var(--board-grid);
+  --color-square-hover: var(--square-hover);
+  --color-piece-text: var(--piece-text);
+  --color-piece-bg: var(--piece-bg);
+  --color-piece-promoted-bg: var(--piece-promoted-bg);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,6 +33,14 @@
     --background: #0a0a0a;
     --foreground: #ededed;
   }
+}
+
+/* Dark mode overrides */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --piece-text: #ffffff;
+  --piece-bg: #333333;
 }
 
 body {
