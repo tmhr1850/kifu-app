@@ -32,7 +32,7 @@ export default function Home() {
           </div>
         </div>
         <PausedGamesList />
-        <GameBoard />
+        <GameBoard showTimeControl={true} />
         <div className="mt-8 text-center text-sm text-gray-600">
           <p>駒をドラッグ&ドロップまたはタップで移動できます</p>
           <p>ESCキーで選択をキャンセルできます</p>

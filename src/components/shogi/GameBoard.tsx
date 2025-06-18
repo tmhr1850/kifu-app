@@ -12,7 +12,11 @@ import {
   resumeGame
 } from '@/utils/shogi/gameWithKifu';
 
-export const GameBoard: React.FC = () => {
+interface GameBoardProps {
+  showTimeControl?: boolean;
+}
+
+export const GameBoard: React.FC<GameBoardProps> = ({ showTimeControl = false }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameStateWithKifu>(() => {
     // セッションストレージから再開するゲームIDを取得
@@ -108,6 +112,7 @@ export const GameBoard: React.FC = () => {
           gameState={gameState}
           onGameStateChange={handleGameStateChange}
           gameMode="local"
+          showTimeControl={showTimeControl}
         />
       </div>
     </div>

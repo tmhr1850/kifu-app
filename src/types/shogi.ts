@@ -56,6 +56,37 @@ export interface Move {
   captured?: Piece;       // 取った駒
 }
 
+// 時間制御の種類
+export enum TimeControlType {
+  SUDDEN_DEATH = 'SUDDEN_DEATH',  // 切れ負け
+  BYOYOMI = 'BYOYOMI',            // 秒読み
+  FISCHER = 'FISCHER',            // フィッシャー方式
+}
+
+// 時間制御の設定
+export interface TimeControlSettings {
+  type: TimeControlType;
+  mainTime: number;           // 持ち時間（秒）
+  byoyomi?: number;          // 秒読み時間（秒）
+  increment?: number;        // フィッシャー方式の増加時間（秒）
+  periods?: number;          // 秒読みの回数
+}
+
+// プレイヤーの時間情報
+export interface PlayerTime {
+  remainingTime: number;     // 残り時間（秒）
+  inByoyomi?: boolean;       // 秒読みモード中か
+  byoyomiPeriods?: number;   // 残り秒読み回数
+}
+
+// 時計の状態
+export interface ClockState {
+  [Player.SENTE]: PlayerTime;
+  [Player.GOTE]: PlayerTime;
+  isRunning: boolean;        // 時計が動作中か
+  lastUpdateTime: number;    // 最後に更新された時刻（timestamp）
+}
+
 // 局面の状態
 export interface GameState {
   board: Board;
@@ -64,6 +95,8 @@ export interface GameState {
   moveHistory: Move[];
   positionHistory?: unknown; // Position history for repetition detection
   resigned?: boolean; // Whether a player has resigned
+  timeControl?: TimeControlSettings; // 時間制御設定
+  clockState?: ClockState;           // 時計の状態
 }
 
 // 移動可能な位置のリスト

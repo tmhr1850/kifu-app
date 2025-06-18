@@ -112,7 +112,8 @@ export function makeMoveWithKifu(
 // 対局終了時の処理
 export function endGameWithKifu(
   gameWithKifu: GameStateWithKifu,
-  result?: 'sente_win' | 'gote_win' | 'draw' | 'resign'
+  result?: 'sente_win' | 'gote_win' | 'draw' | 'resign',
+  reason?: string
 ): GameStateWithKifu {
   const status = getGameStatus(gameWithKifu.game);
   
@@ -128,7 +129,8 @@ export function endGameWithKifu(
     gameInfo: {
       ...gameWithKifu.kifu.gameInfo,
       endTime: new Date().toTimeString().split(' ')[0],
-      result: gameResult
+      result: gameResult,
+      endReason: reason || status.reason || undefined
     },
     updatedAt: new Date().toISOString()
   };
