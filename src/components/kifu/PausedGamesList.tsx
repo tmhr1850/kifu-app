@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { listPausedGames, deletePausedGame, PausedGame } from '@/utils/shogi/storageService';
+import { listPausedGames, deletePausedGame, deleteExpiredPausedGames, PausedGame } from '@/utils/shogi/storageService';
 import { useRouter } from 'next/navigation';
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -12,6 +12,11 @@ export const PausedGamesList: React.FC = () => {
   const router = useRouter();
 
   useEffect(() => {
+    // 期限切れのゲームを削除
+    const deletedCount = deleteExpiredPausedGames();
+    if (deletedCount > 0) {
+      console.log(`${deletedCount}件の期限切れゲームを削除しました`);
+    }
     loadPausedGames();
   }, []);
 
@@ -55,6 +60,20 @@ export const PausedGamesList: React.FC = () => {
     return date.toLocaleDateString('ja-JP') + ' ' + date.toLocaleTimeString('ja-JP');
   };
 
+  const getDaysUntilExpiration = (pausedAt: string) => {
+    const pausedDate = new Date(pausedAt);
+    const now = new Date();
+    const expirationDate = new Date(pausedDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 7日後
+    const daysLeft = Math.ceil((expirationDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+    return daysLeft;
+  };
+
+  const getExpirationWarningClass = (daysLeft: number) => {
+    if (daysLeft <= 1) return 'text-red-600 font-bold';
+    if (daysLeft <= 3) return 'text-orange-600';
+    return 'text-gray-600';
+  };
+
   const getGameModeLabel = (gameMode: string) => {
     switch (gameMode) {
       case 'ai':
@@ -90,6 +109,14 @@ export const PausedGamesList: React.FC = () => {
               <p>☗{game.kifuRecord.gameInfo.sente || '先手'} vs ☖{game.kifuRecord.gameInfo.gote || '後手'}</p>
               <p>手数: {game.kifuRecord.moves.length}</p>
               <p>中断日時: {formatDate(game.pausedAt)}</p>
+              {(() => {
+                const daysLeft = getDaysUntilExpiration(game.pausedAt);
+                return (
+                  <p className={getExpirationWarningClass(daysLeft)}>
+                    期限: あと{daysLeft}日
+                  </p>
+                );
+              })()}
             </div>
 
             <div className="flex gap-2">

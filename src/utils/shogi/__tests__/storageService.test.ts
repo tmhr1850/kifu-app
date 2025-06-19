@@ -5,7 +5,13 @@ import {
   listKifuRecords,
   deleteKifuRecord,
   importKifFromText,
-  exportKifToText
+  exportKifToText,
+  savePausedGame,
+  loadPausedGame,
+  listPausedGames,
+  deletePausedGame,
+  deleteExpiredPausedGames,
+  PausedGame
 } from '../storageService';
 import { KifuRecord } from '@/types/kifu';
 import { Player } from '@/types/shogi';
@@ -124,7 +130,7 @@ describe('Storage Service', () => {
             sente: 'Player 1',
             gote: 'Player 2'
           },
-          moves: [1, 2, 3],
+          moves: [{}, {}, {}], // 3 moves
           createdAt: '2024-01-15T10:00:00Z',
           updatedAt: '2024-01-15T10:00:00Z'
         },
@@ -136,9 +142,9 @@ describe('Storage Service', () => {
             sente: 'Player 3',
             gote: 'Player 4'
           },
-          moves: [1, 2],
+          moves: [{}, {}], // 2 moves
           createdAt: '2024-01-16T11:00:00Z',
-          updatedAt: '2024-01-16T11:00:00Z'
+          updatedAt: '2024-01-16T12:00:00Z' // Later time for sorting
         }
       ];
       
@@ -146,8 +152,9 @@ describe('Storage Service', () => {
 
       const metadata = listKifuRecords();
       expect(metadata).toHaveLength(2);
-      expect(metadata[0].moveCount).toBe(3);
-      expect(metadata[1].moveCount).toBe(2);
+      // test-id-2 comes first because it has a later updatedAt
+      expect(metadata[0].moveCount).toBe(2);
+      expect(metadata[1].moveCount).toBe(3);
     });
 
     it('should return empty array if no records', () => {
@@ -244,6 +251,173 @@ describe('Storage Service', () => {
       
       const kifText = exportKifToText('non-existent');
       expect(kifText).toBeNull();
+    });
+  });
+
+  describe('Paused Game Functions', () => {
+    const mockPausedGame: PausedGame = {
+      id: 'paused-game-1',
+      gameState: {
+        board: [],
+        handPieces: {
+          SENTE: new Map(),
+          GOTE: new Map()
+        },
+        currentPlayer: Player.SENTE,
+        moveHistory: []
+      },
+      kifuRecord: {
+        id: 'paused-game-1',
+        gameInfo: {
+          date: '2024/01/15',
+          startTime: '10:00:00',
+          sente: '先手太郎',
+          gote: '後手花子'
+        },
+        moves: [],
+        createdAt: '2024-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+      },
+      pausedAt: new Date().toISOString(),
+      gameMode: 'local'
+    };
+
+    describe('savePausedGame', () => {
+      it('should save a paused game', () => {
+        localStorageMock.getItem.mockReturnValue('[]');
+        
+        savePausedGame(mockPausedGame);
+        
+        expect(localStorageMock.setItem).toHaveBeenCalledWith(
+          'paused_games',
+          expect.any(String)
+        );
+        
+        const savedData = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+        expect(savedData).toHaveLength(1);
+        expect(savedData[0].id).toBe('paused-game-1');
+      });
+
+      it('should update existing paused game', () => {
+        const existingGames = [
+          { id: 'paused-game-1', pausedAt: '2024-01-01T00:00:00Z' },
+          { id: 'paused-game-2', pausedAt: '2024-01-02T00:00:00Z' }
+        ];
+        
+        localStorageMock.getItem.mockReturnValue(JSON.stringify(existingGames));
+        
+        savePausedGame(mockPausedGame);
+        
+        const savedData = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+        expect(savedData).toHaveLength(2);
+        expect(savedData[0].pausedAt).toBe(mockPausedGame.pausedAt);
+      });
+    });
+
+    describe('loadPausedGame', () => {
+      it('should load a paused game by ID', () => {
+        const pausedGames = [mockPausedGame];
+        localStorageMock.getItem.mockReturnValue(JSON.stringify(pausedGames));
+        
+        const loaded = loadPausedGame('paused-game-1');
+        
+        expect(loaded).toBeDefined();
+        expect(loaded?.id).toBe('paused-game-1');
+      });
+
+      it('should return null if game not found', () => {
+        localStorageMock.getItem.mockReturnValue('[]');
+        
+        const loaded = loadPausedGame('non-existent');
+        
+        expect(loaded).toBeNull();
+      });
+    });
+
+    describe('listPausedGames', () => {
+      it('should return sorted list of paused games', () => {
+        const pausedGames = [
+          { ...mockPausedGame, id: 'game-1', pausedAt: '2024-01-01T00:00:00Z' },
+          { ...mockPausedGame, id: 'game-2', pausedAt: '2024-01-03T00:00:00Z' },
+          { ...mockPausedGame, id: 'game-3', pausedAt: '2024-01-02T00:00:00Z' }
+        ];
+        
+        localStorageMock.getItem.mockReturnValue(JSON.stringify(pausedGames));
+        
+        const list = listPausedGames();
+        
+        expect(list).toHaveLength(3);
+        expect(list[0].id).toBe('game-2'); // 最新が最初
+        expect(list[1].id).toBe('game-3');
+        expect(list[2].id).toBe('game-1');
+      });
+    });
+
+    describe('deletePausedGame', () => {
+      it('should delete a paused game', () => {
+        const pausedGames = [
+          { id: 'game-1' },
+          { id: 'game-2' },
+          { id: 'game-3' }
+        ];
+        
+        localStorageMock.getItem.mockReturnValue(JSON.stringify(pausedGames));
+        
+        const result = deletePausedGame('game-2');
+        
+        expect(result).toBe(true);
+        
+        const savedData = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+        expect(savedData).toHaveLength(2);
+        expect(savedData.find((g: { id: string }) => g.id === 'game-2')).toBeUndefined();
+      });
+
+      it('should return false if game not found', () => {
+        localStorageMock.getItem.mockReturnValue('[]');
+        
+        const result = deletePausedGame('non-existent');
+        
+        expect(result).toBe(false);
+      });
+    });
+
+    describe('deleteExpiredPausedGames', () => {
+      it('should delete games older than expiration days', () => {
+        const now = new Date();
+        const oldDate = new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000); // 8日前
+        const recentDate = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000); // 2日前
+        
+        const pausedGames = [
+          { ...mockPausedGame, id: 'old-game', pausedAt: oldDate.toISOString() },
+          { ...mockPausedGame, id: 'recent-game', pausedAt: recentDate.toISOString() }
+        ];
+        
+        localStorageMock.getItem.mockReturnValue(JSON.stringify(pausedGames));
+        
+        const deletedCount = deleteExpiredPausedGames(7); // 7日間の期限
+        
+        expect(deletedCount).toBe(1);
+        
+        const savedData = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+        expect(savedData).toHaveLength(1);
+        expect(savedData[0].id).toBe('recent-game');
+      });
+
+      it('should not modify storage if no expired games', () => {
+        const recentDate = new Date();
+        
+        const pausedGames = [
+          { ...mockPausedGame, id: 'recent-game-1', pausedAt: recentDate.toISOString() },
+          { ...mockPausedGame, id: 'recent-game-2', pausedAt: recentDate.toISOString() }
+        ];
+        
+        localStorageMock.getItem.mockReturnValue(JSON.stringify(pausedGames));
+        
+        const deletedCount = deleteExpiredPausedGames(7);
+        
+        expect(deletedCount).toBe(0);
+        expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      });
     });
   });
 });

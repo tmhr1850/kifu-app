@@ -198,3 +198,24 @@ function getAllPausedGames(): PausedGame[] {
     return [];
   }
 }
+
+// 期限切れの中断ゲームを削除（デフォルト: 7日間）
+export function deleteExpiredPausedGames(expirationDays: number = 7): number {
+  const pausedGames = getAllPausedGames();
+  const now = new Date();
+  const expirationTime = expirationDays * 24 * 60 * 60 * 1000; // days to milliseconds
+  
+  const activeGames = pausedGames.filter(game => {
+    const pausedDate = new Date(game.pausedAt);
+    const timeDiff = now.getTime() - pausedDate.getTime();
+    return timeDiff < expirationTime;
+  });
+  
+  const deletedCount = pausedGames.length - activeGames.length;
+  
+  if (deletedCount > 0) {
+    localStorage.setItem(PAUSED_GAMES_KEY, JSON.stringify(activeGames));
+  }
+  
+  return deletedCount;
+}
