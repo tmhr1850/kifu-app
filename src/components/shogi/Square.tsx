@@ -6,9 +6,11 @@ import Piece from './Piece';
 interface SquareProps {
   square: SquareType;
   isHighlighted?: boolean;
+  row?: number;
+  col?: number;
 }
 
-export default function Square({ square, isHighlighted = false }: SquareProps) {
+export default function Square({ square, isHighlighted = false, row, col }: SquareProps) {
   return (
     <div
       className={`
@@ -20,6 +22,7 @@ export default function Square({ square, isHighlighted = false }: SquareProps) {
         hover:bg-amber-200 dark:hover:bg-amber-800
         transition-colors duration-200
       `}
+      data-testid={row !== undefined && col !== undefined ? `square-${row}-${col}` : undefined}
     >
       {square.piece && (
         <div className="absolute inset-0 flex items-center justify-center">

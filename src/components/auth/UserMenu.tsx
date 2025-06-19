@@ -36,10 +36,11 @@ export function UserMenu() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" data-testid="user-menu">
       <button
         onClick={() => setShowMenu(!showMenu)}
         className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100"
+        data-testid="user-menu-button"
       >
         <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gray-200">
           {profile?.avatar_url ? (
@@ -60,7 +61,7 @@ export function UserMenu() {
       </button>
 
       {showMenu && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50" data-testid="user-menu-dropdown">
           <div className="px-4 py-2 text-sm text-gray-700 border-b">
             {profile?.username || user.email}
           </div>
@@ -70,6 +71,7 @@ export function UserMenu() {
               setShowMenu(false)
             }}
             className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            data-testid="user-menu-profile"
           >
             マイプロフィール
           </button>
@@ -79,12 +81,14 @@ export function UserMenu() {
               setShowMenu(false)
             }}
             className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            data-testid="user-menu-edit-profile"
           >
             プロフィール編集
           </button>
           <button
             onClick={handleSignOut}
             className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            data-testid="user-menu-logout"
           >
             ログアウト
           </button>
