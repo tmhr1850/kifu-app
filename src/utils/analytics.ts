@@ -1,4 +1,4 @@
-import { getCLS, getFID, getLCP, getFCP, getTTFB } from 'web-vitals';
+import { onCLS, onLCP, onFCP, onTTFB } from 'web-vitals';
 import { checkPerformanceMetric } from './alerts';
 
 interface AnalyticsEvent {
@@ -31,11 +31,10 @@ class Analytics {
   }
 
   private initializeWebVitals() {
-    getCLS(this.sendWebVitalMetric);
-    getFID(this.sendWebVitalMetric);
-    getLCP(this.sendWebVitalMetric);
-    getFCP(this.sendWebVitalMetric);
-    getTTFB(this.sendWebVitalMetric);
+    onCLS(this.sendWebVitalMetric);
+    onLCP(this.sendWebVitalMetric);
+    onFCP(this.sendWebVitalMetric);
+    onTTFB(this.sendWebVitalMetric);
   }
 
   private initializePerformanceObserver() {
