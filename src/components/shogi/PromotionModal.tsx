@@ -28,8 +28,18 @@ export default function PromotionModal({
       } else if (promoteButtonRef.current) {
         promoteButtonRef.current.focus();
       }
+      
+      // Escapeキーのハンドラー
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && canCancel) {
+          onCancel();
+        }
+      };
+      
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isOpen, canCancel]);
+  }, [isOpen, canCancel, onCancel]);
 
   if (!isOpen) return null;
 

@@ -101,6 +101,20 @@ export const GameController: React.FC<GameControllerProps> = ({
     }
   }, [gameState, onGameStateChange]);
 
+  // キーボードショートカット
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Z または Cmd+Z で待った
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        handleUndo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo]);
+
   // 対局を中断する処理
   const handlePause = useCallback(() => {
     pauseGame(gameState, gameMode);
@@ -184,6 +198,7 @@ export const GameController: React.FC<GameControllerProps> = ({
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
           disabled={gameState.kifu.moves.length === 0 || gameStatus.isOver}
+          aria-label="手を一つ戻す（Ctrl+Z）"
         >
           待った
         </button>
@@ -193,6 +208,7 @@ export const GameController: React.FC<GameControllerProps> = ({
           onClick={() => setShowPauseDialog(true)}
           className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors"
           disabled={gameStatus.isOver}
+          aria-label="対局を中断する"
         >
           中断
         </button>
@@ -202,6 +218,7 @@ export const GameController: React.FC<GameControllerProps> = ({
           onClick={() => setShowResignDialog(true)}
           className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
           disabled={gameStatus.isOver}
+          aria-label="投了する"
         >
           投了
         </button>

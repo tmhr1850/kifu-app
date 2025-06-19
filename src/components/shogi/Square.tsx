@@ -11,6 +11,22 @@ interface SquareProps {
 }
 
 export default function Square({ square, isHighlighted = false, row, col }: SquareProps) {
+  // 段と筋を日本語表記に変換
+  const rowKanji = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+  const colNumber = col !== undefined ? 9 - col : undefined;
+  
+  // ARIA label を生成
+  const getAriaLabel = () => {
+    if (row === undefined || col === undefined) return undefined;
+    
+    const position = `${colNumber}${rowKanji[row]}`;
+    const pieceInfo = square.piece 
+      ? `${square.piece.isGote ? '後手' : '先手'}の${square.piece.type}`
+      : '空のマス';
+    
+    return `${position}、${pieceInfo}`;
+  };
+  
   return (
     <div
       className={`
@@ -23,6 +39,9 @@ export default function Square({ square, isHighlighted = false, row, col }: Squa
         transition-colors duration-200
       `}
       data-testid={row !== undefined && col !== undefined ? `square-${row}-${col}` : undefined}
+      role="gridcell"
+      aria-label={getAriaLabel()}
+      tabIndex={-1}
     >
       {square.piece && (
         <div className="absolute inset-0 flex items-center justify-center">
