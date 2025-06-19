@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { UpdateProfileData } from '@/types/profile'
 import { Check, Loader2 } from 'lucide-react'
+import { validateUsername, validateProfileField, INPUT_LIMITS } from '@/utils/security/validation'
 
 const RANK_OPTIONS = [
   { value: '', label: '未設定' },
@@ -59,7 +60,40 @@ export function ProfileEditForm() {
     setError(null)
     setSuccess(false)
 
-    const { error } = await updateProfile(formData)
+    // Validate username
+    const usernameValidation = validateUsername(formData.username)
+    if (!usernameValidation.isValid) {
+      setError(usernameValidation.error || 'ユーザー名が無効です')
+      setLoading(false)
+      return
+    }
+
+    // Validate full name
+    const fullNameValidation = validateProfileField(formData.full_name || '', INPUT_LIMITS.fullName.max)
+    if (!fullNameValidation.isValid) {
+      setError(fullNameValidation.error || '表示名が無効です')
+      setLoading(false)
+      return
+    }
+
+    // Validate bio
+    const bioValidation = validateProfileField(formData.bio || '', INPUT_LIMITS.bio.max)
+    if (!bioValidation.isValid) {
+      setError(bioValidation.error || '自己紹介が無効です')
+      setLoading(false)
+      return
+    }
+
+    // Create sanitized data
+    const sanitizedData: UpdateProfileData = {
+      username: usernameValidation.sanitized,
+      full_name: fullNameValidation.sanitized,
+      bio: bioValidation.sanitized,
+      rank: formData.rank,
+      is_public: formData.is_public,
+    }
+
+    const { error } = await updateProfile(sanitizedData)
 
     if (error) {
       setError(error.message)
@@ -95,9 +129,13 @@ export function ProfileEditForm() {
           name="username"
           value={formData.username}
           onChange={handleChange}
+          maxLength={INPUT_LIMITS.username.max}
           className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="例: shogi_player"
         />
+        <p className="text-xs text-gray-500 mt-1">
+          {formData.username.length}/{INPUT_LIMITS.username.max}文字
+        </p>
       </div>
 
       <div>
@@ -110,9 +148,13 @@ export function ProfileEditForm() {
           name="full_name"
           value={formData.full_name}
           onChange={handleChange}
+          maxLength={INPUT_LIMITS.fullName.max}
           className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="例: 山田太郎"
         />
+        <p className="text-xs text-gray-500 mt-1">
+          {formData.full_name?.length || 0}/{INPUT_LIMITS.fullName.max}文字
+        </p>
       </div>
 
       <div>
@@ -144,9 +186,13 @@ export function ProfileEditForm() {
           value={formData.bio}
           onChange={handleChange}
           rows={4}
+          maxLength={INPUT_LIMITS.bio.max}
           className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           placeholder="自己紹介文を入力してください..."
         />
+        <p className="text-xs text-gray-500 mt-1">
+          {formData.bio?.length || 0}/{INPUT_LIMITS.bio.max}文字
+        </p>
       </div>
 
       <div className="flex items-center">

@@ -51,7 +51,10 @@ export default function BoardImageDialog({ isOpen, onClose, boardState, title = 
       ctx.drawImage(canvas, 0, 0);
     }
     
-    previewRef.current.innerHTML = '';
+    // Remove all child nodes safely
+    while (previewRef.current.firstChild) {
+      previewRef.current.removeChild(previewRef.current.firstChild);
+    }
     previewRef.current.appendChild(previewCanvas);
   }, [isOpen, boardState, selectedPreset, showCoordinates, backgroundColor]);
 

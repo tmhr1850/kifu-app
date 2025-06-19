@@ -5,9 +5,11 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { Upload, Loader2, User } from 'lucide-react'
 import Image from 'next/image'
+import { sanitizeFileName } from '@/utils/security/validation'
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB for better security
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'] // Remove GIF to prevent malicious animated content
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
 
 export function ProfileImageUpload() {
   const { user, profile, updateProfile } = useAuth()
@@ -21,12 +23,26 @@ export function ProfileImageUpload() {
 
     // バリデーション
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('JPEG、PNG、GIF、WebP形式の画像のみアップロード可能です')
+      setError('JPEG、PNG、WebP形式の画像のみアップロード可能です')
       return
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      setError('ファイルサイズは5MB以下にしてください')
+      setError('ファイルサイズは2MB以下にしてください')
+      return
+    }
+
+    // Check file extension as additional security
+    const fileExt = file.name.toLowerCase().split('.').pop()
+    if (!fileExt || !ALLOWED_EXTENSIONS.includes(fileExt)) {
+      setError('無効なファイル拡張子です')
+      return
+    }
+
+    // Validate file name
+    const sanitizedName = sanitizeFileName(file.name)
+    if (sanitizedName !== file.name) {
+      setError('ファイル名に無効な文字が含まれています')
       return
     }
 
@@ -126,8 +142,8 @@ export function ProfileImageUpload() {
       )}
 
       <p className="text-xs text-gray-500 text-center">
-        JPEG、PNG、GIF、WebP形式<br />
-        最大5MBまで
+        JPEG、PNG、WebP形式<br />
+        最大2MBまで
       </p>
     </div>
   )

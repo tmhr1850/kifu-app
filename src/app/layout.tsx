@@ -6,6 +6,7 @@ import { SocketProvider } from "@/contexts/SocketContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AudioProvider } from "@/contexts/AudioContext";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
+import { SessionTimeout } from "@/components/auth/SessionTimeout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,6 +51,7 @@ export default function RootLayout({
             <ThemeProvider>
               <AudioProvider>
                 <SocketProvider>
+                  <SessionTimeout />
                   {children}
                 </SocketProvider>
               </AudioProvider>
