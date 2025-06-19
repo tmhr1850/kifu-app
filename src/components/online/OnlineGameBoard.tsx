@@ -6,6 +6,8 @@ import { Player } from '@/types/shogi'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSocket } from '@/contexts/SocketContext'
 import { ConnectionStatus } from './ConnectionStatus'
+import { useAudio, SoundType } from '@/contexts/AudioContext'
+import { useEffect } from 'react'
 
 interface OnlineGameBoardProps {
   roomId: string
@@ -15,6 +17,19 @@ export function OnlineGameBoard({ roomId }: OnlineGameBoardProps) {
   const { gameState, myColor, isMyTurn, opponentInfo, makeMove } = useOnlineGame()
   const { connected } = useSocket()
   const { user } = useAuth()
+  const { playSound } = useAudio()
+
+  // 相手の着手時に効果音を再生
+  useEffect(() => {
+    if (gameState && gameState.moveHistory.length > 0 && !isMyTurn) {
+      const lastMove = gameState.moveHistory[gameState.moveHistory.length - 1]
+      if (lastMove?.captured) {
+        playSound(SoundType.CAPTURE)
+      } else {
+        playSound(SoundType.MOVE)
+      }
+    }
+  }, [gameState, isMyTurn, playSound])
 
   if (!gameState) {
     return (

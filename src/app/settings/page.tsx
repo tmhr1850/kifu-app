@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useAudio } from '@/contexts/AudioContext'
 import { useRouter } from 'next/navigation'
 import type { BoardTheme } from '@/contexts/ThemeContext'
 
@@ -13,8 +14,16 @@ const boardThemes: { value: BoardTheme; label: string; description: string }[] =
   { value: 'ocean', label: '海', description: '爽やかなブルー系の配色' },
 ]
 
+const bgmOptions = [
+  { value: 'traditional', label: '伝統的', description: '和風の落ち着いたBGM' },
+  { value: 'modern', label: 'モダン', description: '現代的な軽快なBGM' },
+  { value: 'ambient', label: 'アンビエント', description: '集中できる環境音' },
+  { value: null, label: 'なし', description: 'BGMを再生しない' },
+]
+
 export default function SettingsPage() {
   const { themeMode, boardTheme, setThemeMode, setBoardTheme } = useTheme()
+  const { settings, updateSettings } = useAudio()
   const router = useRouter()
 
   return (
@@ -85,6 +94,151 @@ export default function SettingsPage() {
                   </div>
                 </label>
               ))}
+            </div>
+          </section>
+
+          {/* 音声設定 */}
+          <section className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+            <h2 className="text-xl font-semibold mb-4">音声設定</h2>
+            
+            {/* マスターボリューム */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="masterVolume" className="font-medium">
+                  マスターボリューム
+                </label>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {Math.round(settings.masterVolume * 100)}%
+                </span>
+              </div>
+              <input
+                id="masterVolume"
+                type="range"
+                min="0"
+                max="100"
+                value={settings.masterVolume * 100}
+                onChange={(e) => updateSettings({ masterVolume: Number(e.target.value) / 100 })}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+              />
+            </div>
+
+            {/* 効果音設定 */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="font-medium">効果音</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.isEffectsEnabled}
+                    onChange={(e) => updateSettings({ isEffectsEnabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              
+              {settings.isEffectsEnabled && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="effectsVolume" className="text-sm">
+                      効果音の音量
+                    </label>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {Math.round(settings.effectsVolume * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    id="effectsVolume"
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={settings.effectsVolume * 100}
+                    onChange={(e) => updateSettings({ effectsVolume: Number(e.target.value) / 100 })}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* BGM設定 */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="font-medium">BGM</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.isBgmEnabled}
+                    onChange={(e) => updateSettings({ isBgmEnabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              
+              {settings.isBgmEnabled && (
+                <>
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="bgmVolume" className="text-sm">
+                        BGMの音量
+                      </label>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        {Math.round(settings.bgmVolume * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      id="bgmVolume"
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={settings.bgmVolume * 100}
+                      onChange={(e) => updateSettings({ bgmVolume: Number(e.target.value) / 100 })}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">BGM選択</label>
+                    <div className="space-y-2">
+                      {bgmOptions.map((option) => (
+                        <label
+                          key={option.value || 'none'}
+                          className="flex items-start cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <input
+                            type="radio"
+                            name="bgm"
+                            value={option.value || ''}
+                            checked={settings.selectedBgm === option.value}
+                            onChange={() => updateSettings({ selectedBgm: option.value })}
+                            className="mt-1 mr-3 w-4 h-4"
+                          />
+                          <div>
+                            <div className="text-sm font-medium">{option.label}</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              {option.description}
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* ミュート */}
+            <div className="flex items-center justify-between">
+              <span className="font-medium">すべてミュート</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.isMuted}
+                  onChange={(e) => updateSettings({ isMuted: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600"></div>
+              </label>
             </div>
           </section>
 
