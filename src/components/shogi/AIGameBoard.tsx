@@ -1,11 +1,13 @@
 'use client'
 
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useEffect } from 'react'
 import { DraggableBoard } from './DraggableBoard'
 import { GameState, Move, Player, Position, PieceType } from '@/types/shogi'
 import { getPieceAt } from '@/utils/shogi/board'
 import { canPromoteMove, mustPromoteMove } from '@/utils/shogi/validators'
 import { PromotionModal } from './PromotionModal'
+import { useAudio, SoundType } from '@/contexts/AudioContext'
+import { isInCheck, isCheckmateSync } from '@/utils/shogi/validators'
 
 interface AIGameBoardProps {
   gameState: GameState
@@ -20,6 +22,7 @@ export default function AIGameBoard({
   playerColor,
   disabled = false 
 }: AIGameBoardProps) {
+  const { playSound } = useAudio()
   const [promotionDialog, setPromotionDialog] = React.useState<{
     from: Position
     to: Position
@@ -39,6 +42,29 @@ export default function AIGameBoard({
       to: gameMove.to
     }
   }, [gameState])
+
+  // AIの着手時に効果音を再生
+  useEffect(() => {
+    if (gameState.moveHistory.length > 0 && gameState.currentPlayer === playerColor) {
+      // 最後の手がAIの手なので効果音を再生
+      const lastMove = gameState.moveHistory[gameState.moveHistory.length - 1]
+      if (lastMove?.captured) {
+        playSound(SoundType.CAPTURE)
+      } else {
+        playSound(SoundType.MOVE)
+      }
+
+      // 王手・詰み判定
+      if (isInCheck(gameState)) {
+        if (isCheckmateSync(gameState)) {
+          playSound(SoundType.CHECKMATE)
+          playSound(SoundType.GAME_END)
+        } else {
+          playSound(SoundType.CHECK)
+        }
+      }
+    }
+  }, [gameState, playerColor, playSound])
 
 
   // 移動ハンドラー

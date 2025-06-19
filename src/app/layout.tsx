@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AudioProvider } from "@/contexts/AudioContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,9 +46,11 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ThemeProvider>
-            <SocketProvider>
-              {children}
-            </SocketProvider>
+            <AudioProvider>
+              <SocketProvider>
+                {children}
+              </SocketProvider>
+            </AudioProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { DraggableBoard } from './DraggableBoard';
 import { GameController } from './GameController';
 import { Position } from '@/utils/shogi/moveRules';
@@ -11,12 +11,15 @@ import {
   saveCurrentGame,
   resumeGame
 } from '@/utils/shogi/gameWithKifu';
+import { useAudio, SoundType } from '@/contexts/AudioContext';
+import { isInCheck, isCheckmateSync } from '@/utils/shogi/validators';
 
 interface GameBoardProps {
   showTimeControl?: boolean;
 }
 
 export const GameBoard: React.FC<GameBoardProps> = ({ showTimeControl = false }) => {
+  const { playSound, startBgm } = useAudio();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameStateWithKifu>(() => {
     // セッションストレージから再開するゲームIDを取得
@@ -54,6 +57,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({ showTimeControl = false })
     };
   }, [gameState]);
 
+  // ゲーム開始時にBGMを再生
+  useEffect(() => {
+    playSound(SoundType.GAME_START);
+    startBgm();
+  }, [playSound, startBgm]);
+
   // 移動ハンドラー
   const handleMove = useCallback((from: Position, to: Position) => {
     // エラーメッセージをクリア
@@ -72,16 +81,34 @@ export const GameBoard: React.FC<GameBoardProps> = ({ showTimeControl = false })
 
     const newState = makeMoveWithKifu(gameState, move);
     if (newState) {
+      // 移動音を再生
+      const lastMove = newState.game.moveHistory[newState.game.moveHistory.length - 1];
+      if (lastMove?.captured) {
+        playSound(SoundType.CAPTURE);
+      } else {
+        playSound(SoundType.MOVE);
+      }
+
+      // 王手判定
+      if (isInCheck(newState.game)) {
+        if (isCheckmateSync(newState.game)) {
+          playSound(SoundType.CHECKMATE);
+        } else {
+          playSound(SoundType.CHECK);
+        }
+      }
+
       setGameState(newState);
       // 自動保存
       saveCurrentGame(newState);
     } else {
-      // TODO: より詳細なエラーメッセージを表示
+      // エラー音を再生
+      playSound(SoundType.ERROR);
       setErrorMessage('その手は指せません');
       // 3秒後にエラーメッセージを消す
       setTimeout(() => setErrorMessage(null), 3000);
     }
-  }, [gameState]);
+  }, [gameState, playSound]);
 
   // ゲーム状態の変更ハンドラー
   const handleGameStateChange = useCallback((newState: GameStateWithKifu) => {
