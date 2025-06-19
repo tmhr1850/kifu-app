@@ -42,3 +42,9 @@ yarn-error.log*
 next-env.d.ts
 
 .specstory
+
+# playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/tests/e2e/screenshots/

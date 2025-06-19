@@ -40,6 +40,7 @@ export const Board: React.FC<BoardProps> = ({ onPieceClick, onCellClick }) => {
           <div 
             className="board shogi-board flex-1 grid grid-cols-9 gap-0.5 p-1"
             style={{ backgroundColor: 'var(--board-bg)' }}
+            data-testid="game-board"
           >
             {boardState.map((row, rowIndex) => 
               row.map((piece, colIndex) => (
@@ -50,6 +51,7 @@ export const Board: React.FC<BoardProps> = ({ onPieceClick, onCellClick }) => {
                     backgroundColor: 'var(--board-bg)',
                     borderColor: 'var(--board-grid)'
                   }}
+                  data-testid={`square-${rowIndex}-${colIndex}`}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--square-hover)'
                   }}
@@ -69,6 +71,8 @@ export const Board: React.FC<BoardProps> = ({ onPieceClick, onCellClick }) => {
                       type={piece.type}
                       isGote={piece.isGote}
                       onClick={onPieceClick ? () => onPieceClick(rowIndex, colIndex, piece) : undefined}
+                      row={rowIndex}
+                      col={colIndex}
                     />
                   )}
                 </div>
