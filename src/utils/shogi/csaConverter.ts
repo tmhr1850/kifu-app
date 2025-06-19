@@ -1,5 +1,6 @@
 import { KifuMove, GameInfo, KifuRecord } from '@/types/kifu';
 import { Player } from '@/types/shogi';
+import { getMainLineMoves } from './variations';
 
 // CSA piece codes
 const pieceToCSA: { [key: string]: string } = {
@@ -123,8 +124,16 @@ export function gameToCsaFormat(record: KifuRecord): string {
   // Starting player
   lines.push('+');
   
+  // Get moves - use main line only if variationTree exists
+  const movesToExport = record.variationTree ? getMainLineMoves(record.variationTree) : record.moves;
+  
+  // Add warning comment if variations exist
+  if (record.variationTree && hasVariations(record.variationTree)) {
+    lines.push("'このCSAファイルには本譜のみが含まれています。変化手順は保存されません。");
+  }
+  
   // Moves
-  record.moves.forEach((move) => {
+  movesToExport.forEach((move) => {
     let moveStr = moveToCsa(move);
     if (move.time !== undefined) {
       moveStr += `,T${move.time}`;
@@ -163,6 +172,22 @@ export function gameToCsaFormat(record: KifuRecord): string {
   }
   
   return lines.join('\n');
+}
+
+/**
+ * Check if variation tree has any variations (not just main line)
+ */
+function hasVariations(root: any): boolean {
+  function checkNode(node: any): boolean {
+    if (node.children && node.children.length > 1) {
+      return true;
+    }
+    if (node.children && node.children.length === 1) {
+      return checkNode(node.children[0]);
+    }
+    return false;
+  }
+  return checkNode(root);
 }
 
 export function csaFormatToGame(csa: string): { gameInfo: GameInfo; moves: KifuMove[] } {

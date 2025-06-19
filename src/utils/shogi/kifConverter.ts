@@ -1,5 +1,6 @@
-import { KifuMove, GameInfo, KifuRecord, KifHeader } from '@/types/kifu';
+import { KifuMove, GameInfo, KifuRecord, KifHeader, VariationNode } from '@/types/kifu';
 import { Player } from '@/types/shogi';
+import { createRootNode, createVariationNode, findNodeById, getMainLineMoves } from './variations';
 
 const colToKanji = ['１', '２', '３', '４', '５', '６', '７', '８', '９'];
 const rowToKanji = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
@@ -123,23 +124,30 @@ export function gameToKifFormat(record: KifuRecord): string {
   
   lines.push('手数----指手---------消費時間--');
   
-  record.moves.forEach((move, index) => {
-    lines.push(moveToKif(move, index + 1));
-    if (move.comment) {
-      lines.push(`*${move.comment}`);
-    }
-  });
+  // If variationTree exists, use it; otherwise use the linear moves
+  if (record.variationTree) {
+    const kifLines = variationTreeToKifLines(record.variationTree);
+    lines.push(...kifLines);
+  } else {
+    record.moves.forEach((move, index) => {
+      lines.push(moveToKif(move, index + 1));
+      if (move.comment) {
+        lines.push(`*${move.comment}`);
+      }
+    });
+  }
   
   const result = record.gameInfo.result;
   if (result) {
+    const mainLineMoves = record.variationTree ? getMainLineMoves(record.variationTree) : record.moves;
     const resultText = getResultText(result);
-    lines.push(`まで${record.moves.length}手で${resultText}`);
+    lines.push(`まで${mainLineMoves.length}手で${resultText}`);
   }
   
   return lines.join('\n');
 }
 
-export function kifFormatToGame(kif: string): { gameInfo: GameInfo; moves: KifuMove[] } {
+export function kifFormatToGame(kif: string): { gameInfo: GameInfo; moves: KifuMove[]; variationTree?: VariationNode } {
   const lines = kif.split('\n').filter(line => line.trim());
   const gameInfo: GameInfo = {
     date: '',
@@ -147,11 +155,12 @@ export function kifFormatToGame(kif: string): { gameInfo: GameInfo; moves: KifuM
     sente: '',
     gote: ''
   };
-  const moves: KifuMove[] = [];
   
-  let currentPlayer: Player = Player.SENTE;
-  
-  for (const line of lines) {
+  // Parse headers first
+  let lineIndex = 0;
+  for (; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
+    
     if (line.startsWith('#') || line.includes('手数----指手')) {
       continue;
     }
@@ -187,19 +196,169 @@ export function kifFormatToGame(kif: string): { gameInfo: GameInfo; moves: KifuM
           gameInfo.handicap = value;
           break;
       }
-    } else if (line.startsWith('*')) {
-      // Comment applies to the previous move
-      if (moves.length > 0) {
-        moves[moves.length - 1].comment = line.substring(1);
-      }
     } else if (line.match(/^\s*\d+\s+/)) {
-      const move = kifToMove(line, currentPlayer);
-      moves.push(move);
-      currentPlayer = currentPlayer === Player.SENTE ? Player.GOTE : Player.SENTE;
+      // Found first move, break header parsing
+      break;
     }
   }
   
-  return { gameInfo, moves };
+  // Check if the KIF contains variations
+  const hasVariations = lines.some(line => line.match(/^変化：\d+手$/));
+  
+  if (hasVariations) {
+    // Parse with variation support
+    const variationTree = parseKifWithVariations(lines, lineIndex);
+    const moves = getMainLineMoves(variationTree);
+    return { gameInfo, moves, variationTree };
+  } else {
+    // Parse linear moves only (original logic)
+    const moves: KifuMove[] = [];
+    let currentPlayer: Player = Player.SENTE;
+    
+    for (let i = lineIndex; i < lines.length; i++) {
+      const line = lines[i];
+      
+      if (line.startsWith('*')) {
+        // Comment applies to the previous move
+        if (moves.length > 0) {
+          moves[moves.length - 1].comment = line.substring(1);
+        }
+      } else if (line.match(/^\s*\d+\s+/)) {
+        const move = kifToMove(line, currentPlayer);
+        moves.push(move);
+        currentPlayer = currentPlayer === Player.SENTE ? Player.GOTE : Player.SENTE;
+      }
+    }
+    
+    return { gameInfo, moves };
+  }
+}
+
+/**
+ * Parse KIF format with variation support
+ */
+function parseKifWithVariations(lines: string[], startIndex: number): VariationNode {
+  const root = createRootNode();
+  const nodeMap = new Map<string, VariationNode>(); // Map moveNumber to node for variations
+  let currentPlayer: Player = Player.SENTE;
+  
+  interface ParseState {
+    currentNode: VariationNode;
+    player: Player;
+  }
+  
+  function parseMoveLine(line: string, state: ParseState): VariationNode | null {
+    const moveMatch = line.match(/^\s*(\d+)\s+/);
+    if (!moveMatch) return null;
+    
+    const moveNumber = parseInt(moveMatch[1]);
+    const move = kifToMove(line, state.player);
+    
+    const newNode = createVariationNode(
+      move,
+      moveNumber,
+      state.currentNode.id,
+      true // Will be adjusted for variations
+    );
+    
+    state.currentNode.children.push(newNode);
+    
+    // Store in map for variation reference
+    const mapKey = `${moveNumber}-${state.currentNode.id}`;
+    nodeMap.set(mapKey, newNode);
+    
+    return newNode;
+  }
+  
+  // Main line parsing state
+  let mainState: ParseState = {
+    currentNode: root,
+    player: Player.SENTE
+  };
+  
+  let i = startIndex;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    
+    if (!line) {
+      i++;
+      continue;
+    }
+    
+    // Check for variation marker
+    const variationMatch = line.match(/^変化：(\d+)手$/);
+    if (variationMatch) {
+      const branchMoveNumber = parseInt(variationMatch[1]);
+      i++;
+      
+      // Find the node to branch from
+      let branchNode: VariationNode | null = null;
+      for (const [key, node] of nodeMap.entries()) {
+        if (node.moveNumber === branchMoveNumber) {
+          branchNode = node.parentId ? findNodeById(root, node.parentId) : null;
+          break;
+        }
+      }
+      
+      if (!branchNode) {
+        console.warn(`Could not find branch point for variation at move ${branchMoveNumber}`);
+        continue;
+      }
+      
+      // Parse variation
+      const varState: ParseState = {
+        currentNode: branchNode,
+        player: branchMoveNumber % 2 === 1 ? Player.SENTE : Player.GOTE
+      };
+      
+      while (i < lines.length) {
+        const varLine = lines[i].trim();
+        
+        if (!varLine || varLine.match(/^変化：\d+手$/) || varLine.includes('まで')) {
+          break;
+        }
+        
+        if (varLine.startsWith('*')) {
+          // Comment for previous move in variation
+          if (varState.currentNode.move) {
+            varState.currentNode.comment = varLine.substring(1);
+          }
+          i++;
+        } else if (varLine.match(/^\s*\d+\s+/)) {
+          const newNode = parseMoveLine(varLine, varState);
+          if (newNode) {
+            newNode.isMainLine = false; // Mark as variation
+            varState.currentNode = newNode;
+            varState.player = varState.player === Player.SENTE ? Player.GOTE : Player.SENTE;
+          }
+          i++;
+        } else {
+          i++;
+        }
+      }
+    } else if (line.startsWith('*')) {
+      // Comment for main line
+      if (mainState.currentNode.move) {
+        mainState.currentNode.comment = line.substring(1);
+      }
+      i++;
+    } else if (line.match(/^\s*\d+\s+/)) {
+      // Main line move
+      const newNode = parseMoveLine(line, mainState);
+      if (newNode) {
+        mainState.currentNode = newNode;
+        mainState.player = mainState.player === Player.SENTE ? Player.GOTE : Player.SENTE;
+      }
+      i++;
+    } else if (line.includes('まで')) {
+      // End of game marker
+      break;
+    } else {
+      i++;
+    }
+  }
+  
+  return root;
 }
 
 function getResultText(result: string): string {
@@ -216,4 +375,77 @@ function getResultText(result: string): string {
   };
   
   return resultMap[result] || result;
+}
+
+/**
+ * Converts a variation tree to KIF format lines
+ */
+function variationTreeToKifLines(root: VariationNode): string[] {
+  const lines: string[] = [];
+  const processedVariations = new Set<string>();
+  
+  function processNode(node: VariationNode, isMainLine: boolean = true) {
+    if (!node.move) return; // Skip root node
+    
+    lines.push(moveToKif(node.move, node.moveNumber));
+    if (node.comment) {
+      lines.push(`*${node.comment}`);
+    }
+    
+    // Process children
+    if (node.children.length > 0) {
+      // First child continues the current line
+      const mainChild = node.children[0];
+      
+      // Process other children as variations
+      for (let i = 1; i < node.children.length; i++) {
+        const varChild = node.children[i];
+        if (!processedVariations.has(varChild.id)) {
+          processedVariations.add(varChild.id);
+          lines.push('');
+          lines.push(`変化：${node.moveNumber}手`);
+          processVariation(varChild);
+        }
+      }
+      
+      // Continue with main line
+      processNode(mainChild, isMainLine);
+    }
+  }
+  
+  function processVariation(node: VariationNode) {
+    if (!node.move) return;
+    
+    lines.push(moveToKif(node.move, node.moveNumber));
+    if (node.comment) {
+      lines.push(`*${node.comment}`);
+    }
+    
+    // Process all children in this variation
+    if (node.children.length > 0) {
+      // For variations, we process all children recursively
+      const mainChild = node.children[0];
+      
+      // Process additional variations first
+      for (let i = 1; i < node.children.length; i++) {
+        const varChild = node.children[i];
+        if (!processedVariations.has(varChild.id)) {
+          processedVariations.add(varChild.id);
+          lines.push('');
+          lines.push(`変化：${node.moveNumber}手`);
+          processVariation(varChild);
+        }
+      }
+      
+      // Continue with the first child
+      processVariation(mainChild);
+    }
+  }
+  
+  // Start processing from root's children (main line)
+  if (root.children.length > 0) {
+    processNode(root.children[0], true);
+  }
+  
+  return lines;
 }
