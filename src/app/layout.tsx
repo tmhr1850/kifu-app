@@ -6,6 +6,7 @@ import { SocketProvider } from "@/contexts/SocketContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AudioProvider } from "@/contexts/AudioContext";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,17 +46,19 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AnalyticsProvider>
-          <AuthProvider>
-            <ThemeProvider>
-              <AudioProvider>
-                <SocketProvider>
-                  {children}
-                </SocketProvider>
-              </AudioProvider>
-            </ThemeProvider>
-          </AuthProvider>
-        </AnalyticsProvider>
+        <ErrorBoundary>
+          <AnalyticsProvider>
+            <AuthProvider>
+              <ThemeProvider>
+                <AudioProvider>
+                  <SocketProvider>
+                    {children}
+                  </SocketProvider>
+                </AudioProvider>
+              </ThemeProvider>
+            </AuthProvider>
+          </AnalyticsProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

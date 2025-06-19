@@ -7,7 +7,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useSocket } from '@/contexts/SocketContext'
 import { ConnectionStatus } from './ConnectionStatus'
 import { useAudio, SoundType } from '@/contexts/AudioContext'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { captureException } from '@/utils/monitoring'
 
 interface OnlineGameBoardProps {
   roomId: string
@@ -18,18 +19,44 @@ export function OnlineGameBoard({ roomId }: OnlineGameBoardProps) {
   const { connected } = useSocket()
   const { user } = useAuth()
   const { playSound } = useAudio()
+  const [error, setError] = useState<string | null>(null)
+
+  // エラーハンドリング付きの着手処理
+  const handleMove = async (from: string, to: string, promote?: boolean) => {
+    try {
+      setError(null)
+      await makeMove(from, to, promote)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '着手エラーが発生しました'
+      setError(errorMessage)
+      captureException(new Error(errorMessage), {
+        context: 'OnlineGameBoard.handleMove',
+        roomId,
+        from,
+        to,
+        promote
+      })
+    }
+  }
 
   // 相手の着手時に効果音を再生
   useEffect(() => {
-    if (gameState && gameState.moveHistory.length > 0 && !isMyTurn) {
-      const lastMove = gameState.moveHistory[gameState.moveHistory.length - 1]
-      if (lastMove?.captured) {
-        playSound(SoundType.CAPTURE)
-      } else {
-        playSound(SoundType.MOVE)
+    try {
+      if (gameState && gameState.moveHistory.length > 0 && !isMyTurn) {
+        const lastMove = gameState.moveHistory[gameState.moveHistory.length - 1]
+        if (lastMove?.captured) {
+          playSound(SoundType.CAPTURE)
+        } else {
+          playSound(SoundType.MOVE)
+        }
       }
+    } catch (err) {
+      captureException(err as Error, {
+        context: 'OnlineGameBoard.soundEffect',
+        roomId
+      })
     }
-  }, [gameState, isMyTurn, playSound])
+  }, [gameState, isMyTurn, playSound, roomId])
 
   if (!gameState) {
     return (
@@ -74,11 +101,20 @@ export function OnlineGameBoard({ roomId }: OnlineGameBoardProps) {
         </div>
       </div>
 
+      {/* エラー表示 */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-3 mx-4 mt-2">
+          <p className="text-red-800 text-sm">
+            😢 エラー: {error}
+          </p>
+        </div>
+      )}
+
       {/* 将棋盤 */}
       <div className="flex-1 bg-amber-100 p-4">
         <DraggableBoard
           gameState={gameState}
-          onMove={makeMove}
+          onMove={handleMove}
           disabled={!isMyTurn || gameState.onlineStatus !== 'playing'}
           orientation={myColor === Player.GOTE ? Player.GOTE : Player.SENTE}
         />
