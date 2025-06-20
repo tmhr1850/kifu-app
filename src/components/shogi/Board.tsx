@@ -63,7 +63,9 @@ export const Board: React.FC<BoardProps> = ({ onPieceClick, onCellClick }) => {
     const boardElement = document.querySelector('[role="grid"]');
     if (boardElement) {
       const eventHandler = (e: Event) => {
-        handleKeyDown(e as KeyboardEvent);
+        if (e instanceof KeyboardEvent) {
+          handleKeyDown(e);
+        }
       };
       boardElement.addEventListener('keydown', eventHandler);
       return () => {
