@@ -164,8 +164,9 @@ export default function KifuReplayControls({
           <button
             onClick={handleFirst}
             disabled={!canGoBack}
-            className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
             title="最初へ (Home)"
+            aria-label="最初へ移動"
           >
             <ChevronFirst className="w-5 h-5" />
           </button>
@@ -173,18 +174,20 @@ export default function KifuReplayControls({
           <button
             onClick={handlePrevious}
             disabled={!canGoBack}
-            className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
             title="一手戻る (←)"
+            aria-label="一手戻る"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
 
           <button
             onClick={togglePlayback}
-            className={`p-2 rounded-md transition-colors ${
+            className={`p-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               isPlaying ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
             }`}
             title={isPlaying ? '一時停止 (Space)' : '自動再生 (Space)'}
+            aria-label={isPlaying ? '再生を一時停止' : '自動再生を開始'}
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
           </button>
@@ -192,8 +195,9 @@ export default function KifuReplayControls({
           <button
             onClick={handleNext}
             disabled={!canGoForward}
-            className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
             title="一手進む (→)"
+            aria-label="一手進む"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -201,8 +205,9 @@ export default function KifuReplayControls({
           <button
             onClick={handleLast}
             disabled={!canGoForward}
-            className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
             title="最後へ (End)"
+            aria-label="最後へ移動"
           >
             <ChevronLast className="w-5 h-5" />
           </button>
@@ -231,11 +236,13 @@ export default function KifuReplayControls({
                 <button
                   key={speed}
                   onClick={() => handleSpeedChange(speed)}
-                  className={`px-2 py-1 text-sm rounded-md transition-colors ${
+                  className={`px-2 py-1 text-sm rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     playbackSpeed === speed
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 hover:bg-gray-200'
                   }`}
+                  aria-label={`再生速度 ${speed}倍`}
+                  aria-pressed={playbackSpeed === speed}
                 >
                   {speed}x
                 </button>

@@ -47,6 +47,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* スキップリンク（アクセシビリティ） */}
+        <a 
+          href="#main-content" 
+          className="skip-link sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded-md z-50"
+        >
+          メインコンテンツへスキップ
+        </a>
         <ErrorBoundary>
           <AnalyticsProvider>
             <AuthProvider>
@@ -54,7 +61,9 @@ export default function RootLayout({
                 <AudioProvider>
                   <SocketProvider>
                     <SessionTimeout />
-                    {children}
+                    <main id="main-content">
+                      {children}
+                    </main>
                   </SocketProvider>
                 </AudioProvider>
               </ThemeProvider>
