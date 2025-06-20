@@ -201,3 +201,39 @@ function getAllPausedGames(): PausedGame[] {
 
 // Alias for backward compatibility
 export const getStoredKifuRecords = listKifuRecords;
+
+// 期限切れの中断ゲームを削除
+export function deleteExpiredPausedGames(expirationDays: number = 7): number {
+  try {
+    const pausedGames = getAllPausedGames();
+    const now = Date.now();
+    const expirationTime = expirationDays * 24 * 60 * 60 * 1000; // days to milliseconds
+    
+    const activeGames = pausedGames.filter(game => {
+      const pausedTime = new Date(game.pausedAt).getTime();
+      return (now - pausedTime) < expirationTime;
+    });
+    
+    const deletedCount = pausedGames.length - activeGames.length;
+    
+    if (deletedCount > 0) {
+      localStorage.setItem(PAUSED_GAMES_KEY, JSON.stringify(activeGames));
+    }
+    
+    return deletedCount;
+  } catch {
+    return 0;
+  }
+}
+
+// 中断ゲームの残り保存日数を取得
+export function getRemainingDays(pausedAt: string, expirationDays: number = 7): number {
+  const now = Date.now();
+  const pausedTime = new Date(pausedAt).getTime();
+  const elapsedTime = now - pausedTime;
+  const remainingTime = (expirationDays * 24 * 60 * 60 * 1000) - elapsedTime;
+  
+  if (remainingTime <= 0) return 0;
+  
+  return Math.ceil(remainingTime / (24 * 60 * 60 * 1000));
+}
