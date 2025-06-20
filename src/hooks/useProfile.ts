@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { Profile, UpdateProfileData } from '@/types/profile'
+import { UserProfile, UpdateProfileData } from '@/types/profile'
 import { getProfile, updateProfile as updateProfileUtil } from '@/utils/profile'
 
 export function useProfile() {
   const { user } = useAuth()
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

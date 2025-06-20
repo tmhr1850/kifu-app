@@ -109,11 +109,7 @@ class AlertManager {
   private notifyAlert(alert: Alert) {
     this.alertCallbacks.forEach(callback => callback(alert));
 
-    captureMessage(alert.message, alert.severity === 'critical' ? 'error' : alert.severity, {
-      metric: alert.metric,
-      value: alert.value,
-      threshold: alert.threshold,
-    });
+    captureMessage(alert.message, alert.severity === 'critical' ? 'error' : alert.severity);
 
     if (typeof window !== 'undefined' && 'Notification' in window && alert.severity !== 'warning') {
       this.sendBrowserNotification(alert);

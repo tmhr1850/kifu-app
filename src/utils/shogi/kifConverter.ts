@@ -240,7 +240,6 @@ export function kifFormatToGame(kif: string): { gameInfo: GameInfo; moves: KifuM
 function parseKifWithVariations(lines: string[], startIndex: number): VariationNode {
   const root = createRootNode();
   const nodeMap = new Map<string, VariationNode>(); // Map moveNumber to node for variations
-  let currentPlayer: Player = Player.SENTE;
   
   interface ParseState {
     currentNode: VariationNode;
@@ -271,7 +270,7 @@ function parseKifWithVariations(lines: string[], startIndex: number): VariationN
   }
   
   // Main line parsing state
-  let mainState: ParseState = {
+  const mainState: ParseState = {
     currentNode: root,
     player: Player.SENTE
   };
@@ -293,7 +292,7 @@ function parseKifWithVariations(lines: string[], startIndex: number): VariationN
       
       // Find the node to branch from
       let branchNode: VariationNode | null = null;
-      for (const [key, node] of nodeMap.entries()) {
+      for (const [, node] of nodeMap.entries()) {
         if (node.moveNumber === branchMoveNumber) {
           branchNode = node.parentId ? findNodeById(root, node.parentId) : null;
           break;

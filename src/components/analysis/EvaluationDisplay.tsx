@@ -35,7 +35,7 @@ export const EvaluationDisplay: React.FC<EvaluationDisplayProps> = ({
   // 評価値を表示用に変換
   const displayScore = analysis.score / 100; // センチポーンから変換
   const isAdvantage = analysis.score > 0;
-  const advantagePlayer = isAdvantage ? Player.FIRST : Player.SECOND;
+  const advantagePlayer = isAdvantage ? Player.SENTE : Player.GOTE;
   const absoluteScore = Math.abs(displayScore);
 
   // バーの位置を計算（-100から+100の範囲で正規化）
@@ -59,7 +59,7 @@ export const EvaluationDisplay: React.FC<EvaluationDisplayProps> = ({
           </div>
           {settings.showAdvantage && (
             <div className="text-sm text-gray-500 mt-1">
-              {advantagePlayer === Player.FIRST ? '先手' : '後手'}優勢
+              {advantagePlayer === Player.SENTE ? '先手' : '後手'}優勢
             </div>
           )}
         </div>

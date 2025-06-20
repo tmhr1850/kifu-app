@@ -1,4 +1,4 @@
-import { GameState, Move } from '@/types/shogi';
+import { GameState, Move, Player } from '@/types/shogi';
 import { PositionAnalysis, AnalysisSettings, MoveQuality, MoveQualityThresholds } from '@/types/analysis';
 import { AIDifficulty } from './types';
 import { ShogiAIEngine } from './engine';
@@ -211,7 +211,7 @@ export class AnalysisEngine {
       const moveScore = -moveAnalysis.score; // 相手視点の評価値なので反転
       
       // 手番を考慮して品質判定
-      const isPlayerMove = currentState.currentPlayer === 'sente';
+      const isPlayerMove = currentState.currentPlayer === Player.SENTE;
       const quality = this.detectMoveQuality(moveScore, bestScore, isPlayerMove);
       
       qualities.push(quality);

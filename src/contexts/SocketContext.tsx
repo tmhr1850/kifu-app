@@ -24,7 +24,7 @@ interface TimeData {
   [key: string]: {
     remaining: number
     periods?: number
-  }
+  } | number
   lastUpdate: number
 }
 

@@ -1,4 +1,4 @@
-import { BoardState, Player } from './shogi';
+import { Board, Player } from './shogi';
 
 export interface GameInfo {
   date: string;
@@ -62,7 +62,7 @@ export interface KifuRecordWithVariations {
   gameInfo: GameInfo;
   variationTree: VariationNode; // Root node of the variation tree
   currentPath: VariationPath; // Current active path through variations
-  initialBoard?: BoardState;
+  initialBoard?: Board;
   createdAt: string;
   updatedAt: string;
 }
@@ -71,7 +71,7 @@ export interface KifuRecord {
   id: string;
   gameInfo: GameInfo;
   moves: KifuMove[];
-  initialBoard?: BoardState;
+  initialBoard?: Board;
   createdAt: string;
   updatedAt: string;
   // Optional variation support for backward compatibility

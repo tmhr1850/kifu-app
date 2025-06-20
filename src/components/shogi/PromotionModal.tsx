@@ -10,7 +10,7 @@ interface PromotionModalProps {
   canCancel: boolean; // 成らないを選択できるか（強制成りでない場合）
 }
 
-export default function PromotionModal({
+function PromotionModal({
   isOpen,
   onPromote,
   onCancel,
@@ -121,3 +121,6 @@ export default function PromotionModal({
     </div>
   );
 }
+
+export { PromotionModal };
+export default PromotionModal;

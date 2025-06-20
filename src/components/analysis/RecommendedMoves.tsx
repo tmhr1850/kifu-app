@@ -30,10 +30,23 @@ export const RecommendedMoves: React.FC<RecommendedMovesProps> = ({
 
   const isSameMove = (move1: Move, move2: Move | null | undefined): boolean => {
     if (!move2) return false;
-    return move1.from.row === move2.from.row &&
-           move1.from.col === move2.from.col &&
-           move1.to.row === move2.to.row &&
-           move1.to.col === move2.to.col;
+    
+    // 持ち駒を打つ手の場合（fromがnull）
+    if (move1.from === null && move2.from === null) {
+      return move1.to.row === move2.to.row &&
+             move1.to.col === move2.to.col &&
+             move1.piece.type === move2.piece.type;
+    }
+    
+    // 駒を動かす手の場合
+    if (move1.from !== null && move2.from !== null) {
+      return move1.from.row === move2.from.row &&
+             move1.from.col === move2.from.col &&
+             move1.to.row === move2.to.row &&
+             move1.to.col === move2.to.col;
+    }
+    
+    return false;
   };
 
   return (

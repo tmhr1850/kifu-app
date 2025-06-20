@@ -3,6 +3,7 @@
 import React from 'react';
 import { GameState } from '@/types/shogi';
 import { Piece } from '../shogi/Piece';
+import { PieceType as InitialSetupPieceType } from '@/utils/shogi/initialSetup';
 
 interface SimpleBoardProps {
   gameState: GameState;
@@ -68,9 +69,8 @@ export const SimpleBoard: React.FC<SimpleBoardProps> = ({
                 >
                   {displayPiece && (
                     <Piece
-                      type={displayPiece.type}
-                      isOwn={displayPiece.player === 'SENTE'}
-                      isPromoted={false}
+                      type={displayPiece.type as unknown as InitialSetupPieceType}
+                      isGote={displayPiece.player !== 'SENTE'}
                     />
                   )}
                 </div>

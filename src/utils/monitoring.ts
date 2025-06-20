@@ -34,16 +34,6 @@ class MonitoringService {
         replaysSessionSampleRate: config.replaysSessionSampleRate || 0.1,
         replaysOnErrorSampleRate: config.replaysOnErrorSampleRate || 1.0,
         
-        beforeSend(event) {
-          if (event.exception) {
-            analytics.trackError(
-              new Error(event.exception.values?.[0]?.value || 'Unknown error'),
-              { sentryEventId: event.event_id }
-            );
-          }
-          return event;
-        },
-
         integrations: [
           Sentry.browserTracingIntegration(),
           Sentry.replayIntegration({
@@ -77,23 +67,15 @@ class MonitoringService {
     Sentry.captureException(error, {
       extra: errorContext,
     });
-
-    analytics.trackError(error, errorContext);
-    trackPerformanceError(error);
   }
 
-  captureMessage(message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, unknown>) {
+  captureMessage(message: string, level: Sentry.SeverityLevel = 'info') {
     if (!this.initialized) {
       console.log(`[${level}]`, message);
       return;
     }
 
-    Sentry.captureMessage(message, level, {
-      extra: {
-        ...this.userContext,
-        ...context,
-      },
-    });
+    Sentry.captureMessage(message, level);
   }
 
   setUserContext(user: { id: string; email?: string; username?: string }) {
@@ -128,91 +110,6 @@ class MonitoringService {
     });
   }
 
-  startTransaction(name: string, op: string = 'navigation') {
-    if (!this.initialized) {
-      return null;
-    }
-
-    return Sentry.startSpan({
-      name,
-      op,
-    }, () => {});
-  }
-
-  measurePerformance<T>(
-    name: string,
-    operation: () => T | Promise<T>
-  ): T | Promise<T> {
-    const startTime = performance.now();
-    const transaction = this.startTransaction(name, 'function');
-
-    const finish = (result: T) => {
-      const duration = performance.now() - startTime;
-      
-      if (transaction) {
-        transaction.finish();
-      }
-
-      analytics.trackEvent({
-        category: 'performance',
-        action: 'operation',
-        label: name,
-        value: Math.round(duration),
-      });
-
-      if (duration > 1000) {
-        this.captureMessage(
-          `Slow operation detected: ${name} took ${duration.toFixed(2)}ms`,
-          'warning',
-          { operation: name, duration }
-        );
-      }
-
-      return result;
-    };
-
-    try {
-      const result = operation();
-      
-      if (result instanceof Promise) {
-        return result.then(finish).catch((error) => {
-          if (transaction) {
-            transaction.finish();
-          }
-          this.captureException(error, { operation: name });
-          throw error;
-        });
-      }
-      
-      return finish(result);
-    } catch (error) {
-      if (transaction) {
-        transaction.finish();
-      }
-      this.captureException(error as Error, { operation: name });
-      throw error;
-    }
-  }
-
-  withErrorBoundary<P extends object>(
-    Component: React.ComponentType<P>,
-    fallback?: React.ComponentType<{ error: Error; resetError: () => void }>
-  ) {
-    if (!this.initialized) {
-      return Component;
-    }
-
-    return Sentry.withErrorBoundary(Component, {
-      fallback,
-      showDialog: false,
-      onError: (error) => {
-        this.captureException(error, {
-          component: Component.displayName || Component.name || 'Unknown',
-        });
-      },
-    });
-  }
-
   flush(timeout: number = 2000): Promise<boolean> {
     if (!this.initialized) {
       return Promise.resolve(true);
@@ -232,16 +129,16 @@ class MonitoringService {
 
 export const monitoring = new MonitoringService();
 
+// Convenience functions
 export function captureException(error: Error, context?: Record<string, unknown>) {
   monitoring.captureException(error, context);
 }
 
 export function captureMessage(
   message: string, 
-  level: Sentry.SeverityLevel = 'info', 
-  context?: Record<string, unknown>
+  level: Sentry.SeverityLevel = 'info'
 ) {
-  monitoring.captureMessage(message, level, context);
+  monitoring.captureMessage(message, level);
 }
 
 export function setUserContext(user: { id: string; email?: string; username?: string }) {
@@ -255,18 +152,4 @@ export function addBreadcrumb(breadcrumb: {
   data?: Record<string, unknown>;
 }) {
   monitoring.addBreadcrumb(breadcrumb);
-}
-
-export function measurePerformance<T>(
-  name: string,
-  operation: () => T | Promise<T>
-): T | Promise<T> {
-  return monitoring.measurePerformance(name, operation);
-}
-
-export function withErrorBoundary<P extends object>(
-  Component: React.ComponentType<P>,
-  fallback?: React.ComponentType<{ error: Error; resetError: () => void }>
-) {
-  return monitoring.withErrorBoundary(Component, fallback);
 }

@@ -377,3 +377,5 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
     </div>
   )
 }
+
+export default DraggableBoard;

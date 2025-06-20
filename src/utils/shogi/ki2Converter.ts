@@ -270,7 +270,7 @@ function parseKi2WithVariations(lines: string[], startIndex: number): VariationN
   }
   
   // Main line parsing state
-  let mainState: ParseState = {
+  const mainState: ParseState = {
     currentNode: root,
     player: Player.SENTE,
     prevMove: null,

@@ -44,8 +44,9 @@ export const AnalysisBoard: React.FC<AnalysisBoardProps> = ({
   // 推奨手をクリックしたとき
   const handleMoveClick = useCallback((move: Move) => {
     setHighlightedMove(move);
-    // 移動元と移動先をハイライト
-    setHighlightedSquares([move.from, move.to]);
+    // 移動元と移動先をハイライト（nullでない場合のみ）
+    const squares = [move.from, move.to].filter((pos): pos is {row: number; col: number} => pos !== null);
+    setHighlightedSquares(squares);
     onMoveSelect?.(move);
   }, [onMoveSelect]);
 

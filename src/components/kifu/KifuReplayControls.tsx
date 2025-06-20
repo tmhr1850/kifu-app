@@ -117,14 +117,12 @@ export default function KifuReplayControls({
   useEffect(() => {
     if (isPlaying && canGoForward) {
       intervalRef.current = setInterval(() => {
-        onMoveIndexChange((prevIndex) => {
-          const nextIndex = prevIndex + 1
-          if (nextIndex >= moves.length) {
-            setIsPlaying(false)
-            return prevIndex
-          }
-          return nextIndex
-        })
+        const nextIndex = currentMoveIndex + 1
+        if (nextIndex >= moves.length) {
+          setIsPlaying(false)
+        } else {
+          onMoveIndexChange(nextIndex)
+        }
       }, 1000 / playbackSpeed)
     } else {
       stopPlayback()
@@ -135,7 +133,7 @@ export default function KifuReplayControls({
         clearInterval(intervalRef.current)
       }
     }
-  }, [isPlaying, playbackSpeed, canGoForward, moves.length, onMoveIndexChange, stopPlayback])
+  }, [isPlaying, playbackSpeed, canGoForward, currentMoveIndex, moves.length, onMoveIndexChange, stopPlayback])
 
   useEffect(() => {
     if (!canGoForward && isPlaying) {

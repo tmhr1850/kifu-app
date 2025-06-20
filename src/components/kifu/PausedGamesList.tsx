@@ -80,7 +80,7 @@ export const PausedGamesList: React.FC = () => {
             className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow"
           >
             <div className="flex justify-between items-start mb-2">
-              <h3 className="font-semibold">{game.kifuRecord.gameInfo.title || '無題の対局'}</h3>
+              <h3 className="font-semibold">無題の対局</h3>
               <span className="text-xs bg-gray-200 px-2 py-1 rounded">
                 {getGameModeLabel(game.gameMode)}
               </span>

@@ -1,4 +1,4 @@
-import { GameBoard } from '@/components/shogi/GameBoard'
+import GameBoard from '@/components/shogi/GameBoard'
 import { PausedGamesList } from '@/components/kifu/PausedGamesList'
 import Link from 'next/link'
 
@@ -38,7 +38,7 @@ export default function Home() {
           </div>
         </div>
         <PausedGamesList />
-        <GameBoard showTimeControl={true} />
+        <GameBoard />
         <div className="mt-8 text-center text-sm text-gray-600">
           <p>駒をドラッグ&ドロップまたはタップで移動できます</p>
           <p>ESCキーで選択をキャンセルできます</p>

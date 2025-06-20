@@ -1,11 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { KifuMetadata } from '@/types/kifu';
-import { loadKifuRecord } from '@/utils/shogi/storageService';
-import { Board } from '@/utils/shogi/board';
-import { executeMove } from '@/utils/shogi/game';
-import { Player } from '@/types/shogi';
 
 interface KifuCardProps {
   kifu: KifuMetadata;
@@ -20,96 +16,20 @@ export const KifuCard: React.FC<KifuCardProps> = ({
   onDelete,
   isSelected = false
 }) => {
-  const [thumbnail, setThumbnail] = useState<string | null>(null);
 
-  useEffect(() => {
-    generateThumbnail();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kifu.id]);
-
-  const generateThumbnail = async () => {
-    try {
-      const fullKifu = loadKifuRecord(kifu.id);
-      if (!fullKifu || !fullKifu.moves || fullKifu.moves.length === 0) {
-        return;
-      }
-
-      // 最終局面を生成
-      let board = new Board();
-      board.reset();
-      
-      for (const move of fullKifu.moves) {
-        const result = executeMove(board, move);
-        if (!result.success) {
-          break;
-        }
-        board = result.board;
-      }
-
-      // SVGでサムネイルを生成
-      const svg = generateBoardSVG(board);
-      setThumbnail(svg);
-    } catch (error) {
-      console.error('Failed to generate thumbnail:', error);
-    }
-  };
-
-  const generateBoardSVG = (board: Board): string => {
-    const cellSize = 20;
-    const boardSize = 9 * cellSize;
-    const pieces = board.getPieces();
-    
-    let svg = `<svg viewBox="0 0 ${boardSize} ${boardSize}" xmlns="http://www.w3.org/2000/svg">`;
-    
-    // 背景
-    svg += `<rect width="${boardSize}" height="${boardSize}" fill="#f5deb3"/>`;
-    
-    // グリッド
-    for (let i = 0; i <= 9; i++) {
-      svg += `<line x1="${i * cellSize}" y1="0" x2="${i * cellSize}" y2="${boardSize}" stroke="#8b4513" stroke-width="0.5"/>`;
-      svg += `<line x1="0" y1="${i * cellSize}" x2="${boardSize}" y2="${i * cellSize}" stroke="#8b4513" stroke-width="0.5"/>`;
-    }
-    
-    // 駒
-    for (let row = 0; row < 9; row++) {
-      for (let col = 0; col < 9; col++) {
-        const piece = pieces[row][col];
-        if (piece) {
-          const x = (8 - col) * cellSize + cellSize / 2;
-          const y = row * cellSize + cellSize / 2;
-          const color = piece.owner === Player.SENTE ? '#000' : '#800';
-          
-          svg += `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" 
-                   font-size="14" fill="${color}" font-weight="bold">
-                   ${getPieceSymbol(piece.type)}
-                 </text>`;
-        }
-      }
-    }
-    
-    svg += '</svg>';
-    return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
-  };
-
-  const getPieceSymbol = (type: string): string => {
-    const symbols: { [key: string]: string } = {
-      'ou': '王',
-      'gyoku': '玉',
-      'hi': '飛',
-      'ryu': '龍',
-      'kaku': '角',
-      'uma': '馬',
-      'kin': '金',
-      'gin': '銀',
-      'narigin': '全',
-      'kei': '桂',
-      'narikei': '圭',
-      'kyo': '香',
-      'narikyo': '杏',
-      'fu': '歩',
-      'to': 'と'
+  const getResultText = (result: string): string => {
+    const resultMap: { [key: string]: string } = {
+      'sente_win': '先手勝ち',
+      'gote_win': '後手勝ち',
+      'draw': '引き分け',
+      'sennichite': '千日手',
+      'jishogi': '持将棋',
+      'illegal_move': '反則負け',
+      'time_up': '時間切れ',
+      'resign': '投了',
+      'abort': '中断'
     };
-    return symbols[type] || type;
+    return resultMap[result] || result;
   };
 
   return (
@@ -121,17 +41,10 @@ export const KifuCard: React.FC<KifuCardProps> = ({
     >
       {/* サムネイル */}
       <div className="w-full h-40 bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center overflow-hidden">
-        {thumbnail ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={thumbnail} alt="局面" className="w-full h-full object-contain p-2" />
-          </>
-        ) : (
-          <div className="text-center">
-            <div className="text-3xl font-bold text-amber-800">{kifu.moveCount}</div>
-            <div className="text-sm text-amber-600">手</div>
-          </div>
-        )}
+        <div className="text-center">
+          <div className="text-3xl font-bold text-amber-800">{kifu.moveCount}</div>
+          <div className="text-sm text-amber-600">手</div>
+        </div>
       </div>
 
       {/* 情報 */}
@@ -198,17 +111,3 @@ export const KifuCard: React.FC<KifuCardProps> = ({
     </div>
   );
 };
-
-function getResultText(result: string): string {
-  const resultMap: { [key: string]: string } = {
-    'sente_win': '先手勝ち',
-    'gote_win': '後手勝ち',
-    'draw': '引き分け',
-    'resign': '投了',
-    'time_up': '時間切れ',
-    'sennichite': '千日手',
-    'jishogi': '持将棋'
-  };
-  
-  return resultMap[result] || result;
-}

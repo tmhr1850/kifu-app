@@ -5,6 +5,7 @@ export * from './storageService';
 export {
   savePausedGame,
   loadPausedGame,
-  deletePausedGame as removePausedGame,
-  PausedGame as PausedGameData
+  deletePausedGame as removePausedGame
 } from './storageService';
+
+export type { PausedGame as PausedGameData } from './storageService';

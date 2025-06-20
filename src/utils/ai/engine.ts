@@ -42,7 +42,7 @@ export class ShogiAIEngine implements AIEngine {
     this.worker.addEventListener('error', (error) => {
       console.error('Worker error:', error);
       if (this.workerReject) {
-        this.workerReject(error);
+        this.workerReject(new Error(error.message || 'Worker error'));
         this.workerResolve = null;
         this.workerReject = null;
       }
@@ -96,7 +96,7 @@ export class ShogiAIEngine implements AIEngine {
 
       const handleError = (error: ErrorEvent) => {
         this.worker!.removeEventListener('error', handleError);
-        reject(error);
+        reject(new Error(error.message || 'Worker error'));
       };
 
       this.worker.addEventListener('message', handleMessage);

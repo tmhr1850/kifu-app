@@ -1,4 +1,4 @@
-import { GameState, Move, Player } from '@/types/shogi';
+import { GameState, Move, Player, PieceType } from '@/types/shogi';
 import { KifuRecord, KifuMove, GameInfo } from '@/types/kifu';
 import { createNewGame, makeMove } from './game';
 import { 
@@ -259,25 +259,25 @@ function rebuildGameStateAlongPath(kifu: KifuRecord): GameState {
 }
 
 // Helper functions (same as original)
-function getPieceChar(pieceType: string): string {
-  const pieceMap: { [key: string]: string } = {
-    'FU': '歩',
-    'KYO': '香',
-    'KEI': '桂',
-    'GIN': '銀',
-    'KIN': '金',
-    'KAKU': '角',
-    'HI': '飛',
-    'OU': '王',
-    'TO': 'と',
-    'NKYO': '成香',
-    'NKEI': '成桂',
-    'NGIN': '成銀',
-    'UMA': '馬',
-    'RYU': '龍'
+function getPieceChar(pieceType: PieceType): string {
+  const pieceMap: Record<PieceType, string> = {
+    FU: '歩',
+    KYO: '香',
+    KEI: '桂',
+    GIN: '銀',
+    KIN: '金',
+    KAKU: '角',
+    HI: '飛',
+    OU: '王',
+    TO: 'と',
+    NKYO: '成香',
+    NKEI: '成桂',
+    NGIN: '成銀',
+    UMA: '馬',
+    RYU: '龍'
   };
   
-  return pieceMap[pieceType] || pieceType;
+  return pieceMap[pieceType] || '歩';
 }
 
 function kifuMoveToGameMove(kifuMove: KifuMove): Move | null {
@@ -294,25 +294,25 @@ function kifuMoveToGameMove(kifuMove: KifuMove): Move | null {
   };
 }
 
-function getPieceTypeFromChar(char: string): string {
-  const charMap: { [key: string]: string } = {
-    '歩': 'FU',
-    '香': 'KYO',
-    '桂': 'KEI',
-    '銀': 'GIN',
-    '金': 'KIN',
-    '角': 'KAKU',
-    '飛': 'HI',
-    '王': 'OU',
-    'と': 'TO',
-    '成香': 'NKYO',
-    '成桂': 'NKEI',
-    '成銀': 'NGIN',
-    '馬': 'UMA',
-    '龍': 'RYU'
+function getPieceTypeFromChar(char: string): PieceType {
+  const charMap: Record<string, PieceType> = {
+    '歩': PieceType.FU,
+    '香': PieceType.KYO,
+    '桂': PieceType.KEI,
+    '銀': PieceType.GIN,
+    '金': PieceType.KIN,
+    '角': PieceType.KAKU,
+    '飛': PieceType.HI,
+    '王': PieceType.OU,
+    'と': PieceType.TO,
+    '成香': PieceType.NKYO,
+    '成桂': PieceType.NKEI,
+    '成銀': PieceType.NGIN,
+    '馬': PieceType.UMA,
+    '龍': PieceType.RYU
   };
   
-  return charMap[char] || 'FU';
+  return charMap[char] || PieceType.FU;
 }
 
 // Export other functions from original file

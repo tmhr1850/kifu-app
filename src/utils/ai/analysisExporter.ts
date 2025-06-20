@@ -235,14 +235,14 @@ export class AnalysisExporter {
     const toFile = files[move.to.col];
     const toRank = ranks[move.to.row];
     
-    if (move.from.row === -1) {
+    if (!move.from || move.from.row === -1) {
       // 駒台から
       return `${move.piece}*${toFile}${toRank}`;
     } else {
       // 盤上から
       const fromFile = files[move.from.col];
       const fromRank = ranks[move.from.row];
-      const promoted = move.isPromotion ? '成' : '';
+      const promoted = move.promote ? '成' : '';
       return `${fromFile}${fromRank}${move.piece}${promoted}${toFile}${toRank}`;
     }
   }

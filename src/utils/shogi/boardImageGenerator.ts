@@ -1,4 +1,4 @@
-import { BoardState, PieceType, Player } from '@/types/shogi';
+import { Board, PieceType, Player } from '@/types/shogi';
 
 export interface ImageGeneratorOptions {
   width: number;
@@ -23,26 +23,24 @@ const defaultOptions: ImageGeneratorOptions = {
 };
 
 const pieceKanji: { [key in PieceType]: string } = {
-  '歩': '歩',
-  '香': '香',
-  '桂': '桂',
-  '銀': '銀',
-  '金': '金',
-  '角': '角',
-  '飛': '飛',
-  '玉': '玉',
-  '王': '王',
-  'と': 'と',
-  '成香': '杏',
-  '成桂': '圭',
-  '成銀': '全',
-  '馬': '馬',
-  '龍': '龍',
-  '竜': '竜'
+  [PieceType.FU]: '歩',
+  [PieceType.KYO]: '香',
+  [PieceType.KEI]: '桂',
+  [PieceType.GIN]: '銀',
+  [PieceType.KIN]: '金',
+  [PieceType.KAKU]: '角',
+  [PieceType.HI]: '飛',
+  [PieceType.OU]: '王',
+  [PieceType.TO]: 'と',
+  [PieceType.NKYO]: '杏',
+  [PieceType.NKEI]: '圭',
+  [PieceType.NGIN]: '全',
+  [PieceType.UMA]: '馬',
+  [PieceType.RYU]: '龍'
 };
 
 export function generateBoardImage(
-  boardState: BoardState,
+  board: Board,
   options: Partial<ImageGeneratorOptions> = {}
 ): HTMLCanvasElement {
   const opts = { ...defaultOptions, ...options };
@@ -84,33 +82,6 @@ export function generateBoardImage(
     ctx.stroke();
   }
   
-  // Draw coordinates if enabled
-  if (opts.showCoordinates) {
-    ctx.font = `${opts.fontSize! * 0.6}px ${opts.fontFamily}`;
-    ctx.fillStyle = opts.lineColor!;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    
-    const fileLabels = ['９', '８', '７', '６', '５', '４', '３', '２', '１'];
-    const rankLabels = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
-    
-    for (let i = 0; i < 9; i++) {
-      // File labels (top)
-      ctx.fillText(
-        fileLabels[i],
-        startX + i * cellSize + cellSize / 2,
-        startY - margin / 2
-      );
-      
-      // Rank labels (right)
-      ctx.fillText(
-        rankLabels[i],
-        startX + boardSize + margin / 2,
-        startY + i * cellSize + cellSize / 2
-      );
-    }
-  }
-  
   // Draw pieces
   ctx.font = `${opts.fontSize}px ${opts.fontFamily}`;
   ctx.textAlign = 'center';
@@ -118,12 +89,12 @@ export function generateBoardImage(
   
   for (let row = 0; row < 9; row++) {
     for (let col = 0; col < 9; col++) {
-      const piece = boardState.board[row][col];
+      const piece = board[row][col];
       if (piece) {
         const x = startX + col * cellSize + cellSize / 2;
         const y = startY + row * cellSize + cellSize / 2;
         
-        // Draw piece background (optional)
+        // Draw piece background
         ctx.fillStyle = piece.player === Player.SENTE ? '#ffffff' : '#cccccc';
         ctx.beginPath();
         ctx.arc(x, y, cellSize * 0.4, 0, 2 * Math.PI);
@@ -147,43 +118,7 @@ export function generateBoardImage(
     }
   }
   
-  // Draw captured pieces
-  ctx.font = `${opts.fontSize! * 0.8}px ${opts.fontFamily}`;
-  
-  // Sente captured pieces (bottom)
-  if (boardState.captured.sente.length > 0) {
-    ctx.fillStyle = '#000000';
-    ctx.textAlign = 'left';
-    ctx.fillText(
-      '先手持駒: ' + formatCapturedPieces(boardState.captured.sente),
-      margin,
-      opts.height - margin
-    );
-  }
-  
-  // Gote captured pieces (top)
-  if (boardState.captured.gote.length > 0) {
-    ctx.fillStyle = '#000000';
-    ctx.textAlign = 'left';
-    ctx.fillText(
-      '後手持駒: ' + formatCapturedPieces(boardState.captured.gote),
-      margin,
-      margin / 2
-    );
-  }
-  
   return canvas;
-}
-
-function formatCapturedPieces(pieces: PieceType[]): string {
-  const counts: { [key: string]: number } = {};
-  pieces.forEach(piece => {
-    counts[piece] = (counts[piece] || 0) + 1;
-  });
-  
-  return Object.entries(counts)
-    .map(([piece, count]) => count > 1 ? `${piece}${count}` : piece)
-    .join(' ');
 }
 
 export function downloadBoardImage(

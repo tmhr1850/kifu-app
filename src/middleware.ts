@@ -64,7 +64,7 @@ export function middleware(request: NextRequest) {
 
   // 認証関連のエンドポイントに対するレート制限
   if (request.nextUrl.pathname.startsWith('/auth/')) {
-    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown'
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     const now = Date.now()
     
     const record = requestCounts.get(ip)

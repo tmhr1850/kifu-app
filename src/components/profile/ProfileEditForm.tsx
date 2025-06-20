@@ -63,9 +63,9 @@ export function ProfileEditForm() {
     // Sanitize user inputs before submission
     const sanitizedData: UpdateProfileData = {
       ...formData,
-      username: sanitizeUsername(formData.username),
-      full_name: sanitizeProfileText(formData.full_name),
-      bio: sanitizeProfileText(formData.bio),
+      username: sanitizeUsername(formData.username || ''),
+      full_name: sanitizeProfileText(formData.full_name || ''),
+      bio: sanitizeProfileText(formData.bio || ''),
     }
 
     const { error } = await updateProfile(sanitizedData)

@@ -65,7 +65,7 @@ export default function KifuListPage() {
     filtered.sort((a, b) => {
       let compareValue = 0;
       if (sortBy === 'date') {
-        compareValue = new Date(a.savedAt).getTime() - new Date(b.savedAt).getTime();
+        compareValue = new Date(a.gameInfo.date).getTime() - new Date(b.gameInfo.date).getTime();
       } else {
         compareValue = a.gameInfo.sente.localeCompare(b.gameInfo.sente);
       }

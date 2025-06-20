@@ -97,7 +97,7 @@ export function hashPosition(
   // 先手の持ち駒
   parts.push('SH:')
   for (const type of pieceTypes) {
-    const count = handPieces[Player.SENTE][type] || 0
+    const count = handPieces[Player.SENTE].get(type) || 0
     if (count > 0) {
       parts.push(`${type}:${count}`)
     }
@@ -106,7 +106,7 @@ export function hashPosition(
   // 後手の持ち駒
   parts.push('GH:')
   for (const type of pieceTypes) {
-    const count = handPieces[Player.GOTE][type] || 0
+    const count = handPieces[Player.GOTE].get(type) || 0
     if (count > 0) {
       parts.push(`${type}:${count}`)
     }

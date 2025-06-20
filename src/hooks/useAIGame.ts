@@ -19,7 +19,7 @@ export function useAIGame(options: UseAIGameOptions) {
   const [isAIThinking, setIsAIThinking] = useState(false)
   const [thinkingProgress, setThinkingProgress] = useState(0)
   const aiEngineRef = useRef(getAIEngine())
-  const timeoutRef = useRef<NodeJS.Timeout>()
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   // ゲームリセット
   const resetGame = useCallback(() => {

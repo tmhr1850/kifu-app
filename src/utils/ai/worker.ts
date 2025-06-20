@@ -2,7 +2,8 @@ import { AIWorkerMessage } from './types';
 import { minimax, cancelSearch } from './minimax';
 
 // Web Worker context
-declare const self: DedicatedWorkerGlobalScope;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const self: any;
 
 self.addEventListener('message', async (event: MessageEvent<AIWorkerMessage>) => {
   const { type, gameState, settings } = event.data;
@@ -53,7 +54,7 @@ self.addEventListener('message', async (event: MessageEvent<AIWorkerMessage>) =>
 });
 
 // エラーハンドリング
-self.addEventListener('error', (error) => {
+self.addEventListener('error', (error: ErrorEvent) => {
   console.error('Worker error:', error);
 });
 
