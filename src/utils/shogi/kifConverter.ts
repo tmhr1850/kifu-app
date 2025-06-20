@@ -292,7 +292,7 @@ function parseKifWithVariations(lines: string[], startIndex: number): VariationN
       
       // Find the node to branch from
       let branchNode: VariationNode | null = null;
-      for (const [, node] of nodeMap.entries()) {
+      for (const node of nodeMap.values()) {
         if (node.moveNumber === branchMoveNumber) {
           branchNode = node.parentId ? findNodeById(root, node.parentId) : null;
           break;
