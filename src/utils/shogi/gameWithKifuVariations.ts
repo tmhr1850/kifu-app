@@ -14,7 +14,9 @@ import {
   getPathToNode,
   wouldCreateVariation,
   initializeVariations,
-  deleteVariation as deleteVariationNode
+  deleteVariation as deleteVariationNode,
+  renameVariation as renameVariationNode,
+  promoteToMainLine as promoteToMainLineUtil
 } from './variations';
 
 export interface GameStateWithKifu {
@@ -313,6 +315,65 @@ function getPieceTypeFromChar(char: string): PieceType {
   };
   
   return charMap[char] || PieceType.FU;
+}
+
+// Rename a variation
+export function renameVariation(
+  gameWithKifu: GameStateWithKifu,
+  nodeId: string,
+  name: string
+): GameStateWithKifu | null {
+  const kifu = gameWithKifu.kifu;
+  
+  if (!kifu.variationTree) {
+    return null;
+  }
+  
+  const success = renameVariationNode(kifu.variationTree, nodeId, name);
+  if (!success) {
+    return null;
+  }
+  
+  const updatedKifu = {
+    ...kifu,
+    updatedAt: new Date().toISOString()
+  };
+  
+  saveKifuRecord(updatedKifu);
+  
+  return {
+    game: gameWithKifu.game,
+    kifu: updatedKifu
+  };
+}
+
+// Promote variation to main line
+export function promoteVariationToMainLine(
+  gameWithKifu: GameStateWithKifu,
+  nodeId: string
+): GameStateWithKifu | null {
+  const kifu = gameWithKifu.kifu;
+  
+  if (!kifu.variationTree) {
+    return null;
+  }
+  
+  const success = promoteToMainLineUtil(kifu.variationTree, nodeId);
+  if (!success) {
+    return null;
+  }
+  
+  const updatedKifu = {
+    ...kifu,
+    updatedAt: new Date().toISOString()
+  };
+  
+  saveKifuRecord(updatedKifu);
+  
+  return {
+    game: gameWithKifu.game,
+    kifu: updatedKifu
+  };
 }
 
 // Export other functions from original file

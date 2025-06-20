@@ -1,6 +1,10 @@
-import { KifuMove, GameInfo, KifuRecord } from '@/types/kifu';
+import { KifuMove, GameInfo, KifuRecord, VariationNode } from '@/types/kifu';
 import { Player } from '@/types/shogi';
-import { getMainLineMoves } from './variations';
+import { 
+  getMainLineMoves, 
+  createRootNode, 
+  createVariationNode
+} from './variations';
 
 // CSA piece codes
 const pieceToCSA: { [key: string]: string } = {
@@ -127,9 +131,13 @@ export function gameToCsaFormat(record: KifuRecord): string {
   // Get moves - use main line only if variationTree exists
   const movesToExport = record.variationTree ? getMainLineMoves(record.variationTree) : record.moves;
   
-  // Add warning comment if variations exist
+  // Export variations if they exist
   if (record.variationTree && hasVariations(record.variationTree)) {
-    lines.push("'このCSAファイルには本譜のみが含まれています。変化手順は保存されません。");
+    lines.push("'このCSAファイルには変化手順が含まれています。");
+    lines.push("'標準のCSAフォーマットではないため、互換性に注意してください。");
+    
+    // Export variations as special comments
+    exportVariationsAsComments(record.variationTree, lines);
   }
   
   // Moves
@@ -192,7 +200,7 @@ function hasVariations(root: any): boolean {
   return checkNode(root);
 }
 
-export function csaFormatToGame(csa: string): { gameInfo: GameInfo; moves: KifuMove[] } {
+export function csaFormatToGame(csa: string): { gameInfo: GameInfo; moves: KifuMove[]; variationTree?: VariationNode } {
   const lines = csa.split('\n').filter(line => line.trim());
   const gameInfo: GameInfo = {
     date: '',
@@ -203,7 +211,17 @@ export function csaFormatToGame(csa: string): { gameInfo: GameInfo; moves: KifuM
   const moves: KifuMove[] = [];
   
   let lastComment: string | undefined;
+  let hasVariationComments = false;
   
+  // First pass: check if CSA contains variation comments
+  for (const line of lines) {
+    if (line.match(/^'VARIATION:\d+:/)) {
+      hasVariationComments = true;
+      break;
+    }
+  }
+  
+  // Parse headers and moves
   for (const line of lines) {
     if (line.startsWith('N+')) {
       gameInfo.sente = line.substring(2);
@@ -266,5 +284,161 @@ export function csaFormatToGame(csa: string): { gameInfo: GameInfo; moves: KifuM
     }
   }
   
+  // If has variation comments, parse them and build variation tree
+  if (hasVariationComments) {
+    const variationTree = parseCSAVariations(lines, moves);
+    return { gameInfo, moves: getMainLineMoves(variationTree), variationTree };
+  }
+  
   return { gameInfo, moves };
+}
+
+/**
+ * Parse CSA variations from comment lines
+ */
+function parseCSAVariations(lines: string[], mainMoves: KifuMove[]): VariationNode {
+  const root = createRootNode();
+  const moveNumberToNodes = new Map<number, VariationNode[]>();
+  
+  // Build main line first
+  let currentNode = root;
+  for (let i = 0; i < mainMoves.length; i++) {
+    const newNode = createVariationNode(mainMoves[i], i + 1, currentNode.id, true);
+    currentNode.children.push(newNode);
+    
+    if (!moveNumberToNodes.has(i + 1)) {
+      moveNumberToNodes.set(i + 1, []);
+    }
+    moveNumberToNodes.get(i + 1)!.push(newNode);
+    
+    currentNode = newNode;
+  }
+  
+  // Parse variation comments
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    
+    // Check for variation marker
+    const variationMatch = line.match(/^'VARIATION:(\d+):(.*)/);
+    if (variationMatch) {
+      const branchMoveNumber = parseInt(variationMatch[1]);
+      const variationName = variationMatch[2] || undefined;
+      
+      // Find parent node
+      const parentNodes = moveNumberToNodes.get(branchMoveNumber - 1);
+      if (!parentNodes || parentNodes.length === 0) {
+        i++;
+        continue;
+      }
+      
+      const parentNode = parentNodes[0];
+      let varCurrentNode = parentNode;
+      let varMoveNumber = branchMoveNumber - 1;
+      let varPlayer = branchMoveNumber % 2 === 1 ? Player.SENTE : Player.GOTE;
+      
+      // Parse variation moves
+      i++;
+      while (i < lines.length) {
+        const varLine = lines[i];
+        
+        if (varLine.match(/^'VARIATION:/) || varLine.startsWith('%')) {
+          break;
+        }
+        
+        if (varLine.match(/^[+-]\d{4}[A-Z]{2}/)) {
+          const [moveStr] = varLine.split(',');
+          const move = csaToMove(moveStr);
+          varMoveNumber++;
+          
+          const newNode = createVariationNode(
+            move,
+            varMoveNumber,
+            varCurrentNode.id,
+            false
+          );
+          
+          if (variationName && varCurrentNode === parentNode) {
+            newNode.comment = variationName;
+          }
+          
+          varCurrentNode.children.push(newNode);
+          varCurrentNode = newNode;
+          varPlayer = varPlayer === Player.SENTE ? Player.GOTE : Player.SENTE;
+        }
+        
+        i++;
+      }
+    } else {
+      i++;
+    }
+  }
+  
+  return root;
+}
+
+/**
+ * Export variations as CSA comments
+ */
+function exportVariationsAsComments(root: VariationNode, lines: string[]) {
+  const processedVariations = new Set<string>();
+  
+  function processNode(node: VariationNode) {
+    if (!node.children) return;
+    
+    // Process variations (non-main line children)
+    for (let i = 1; i < node.children.length; i++) {
+      const varChild = node.children[i];
+      if (!processedVariations.has(varChild.id)) {
+        processedVariations.add(varChild.id);
+        
+        // Add variation marker
+        const variationName = varChild.comment || '';
+        lines.push(`'VARIATION:${node.moveNumber}:${variationName}`);
+        
+        // Export variation moves
+        exportVariationBranch(varChild, lines);
+      }
+    }
+    
+    // Continue with main line
+    if (node.children.length > 0) {
+      processNode(node.children[0]);
+    }
+  }
+  
+  function exportVariationBranch(node: VariationNode, lines: string[]) {
+    if (!node.move) return;
+    
+    let moveStr = moveToCsa(node.move);
+    if (node.move.time !== undefined) {
+      moveStr += `,T${node.move.time}`;
+    }
+    lines.push(moveStr);
+    
+    if (node.move.comment && !node.comment) {
+      lines.push(`'${node.move.comment}`);
+    }
+    
+    // Process children recursively
+    if (node.children.length > 0) {
+      // Process additional variations first
+      for (let i = 1; i < node.children.length; i++) {
+        const varChild = node.children[i];
+        if (!processedVariations.has(varChild.id)) {
+          processedVariations.add(varChild.id);
+          lines.push(`'VARIATION:${node.moveNumber}:${varChild.comment || ''}`);
+          exportVariationBranch(varChild, lines);
+        }
+      }
+      
+      // Continue with first child
+      exportVariationBranch(node.children[0], lines);
+    }
+  }
+  
+  // Start from root's children
+  if (root.children.length > 0) {
+    processNode(root.children[0]);
+  }
 }
