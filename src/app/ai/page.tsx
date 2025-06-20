@@ -202,6 +202,7 @@ function AIGameScreen({ settings, onBack }: { settings: AIGameSettings; onBack: 
     gameState,
     isAIThinking,
     thinkingProgress,
+    makePlayerMove,
     resetGame,
     resign,
     playerColor,
@@ -252,6 +253,7 @@ function AIGameScreen({ settings, onBack }: { settings: AIGameSettings; onBack: 
             <div className="bg-white rounded-lg shadow-md p-4">
               <AIGameBoard
                 gameState={gameState}
+                onMove={makePlayerMove}
                 playerColor={playerColor}
                 disabled={isAIThinking || gameState.currentPlayer !== playerColor}
               />
