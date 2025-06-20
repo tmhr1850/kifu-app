@@ -166,7 +166,8 @@ export const GameController: React.FC<GameControllerProps> = ({
         <div className="mb-4 text-center">
           <button
             onClick={() => setShowTimeSettings(true)}
-            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-400"
+            aria-label="対局の時間設定を行う"
           >
             時間設定
           </button>
@@ -178,12 +179,13 @@ export const GameController: React.FC<GameControllerProps> = ({
         {/* 待ったボタン */}
         <button
           onClick={handleUndo}
-          className={`px-4 py-2 rounded-md transition-colors ${
+          className={`px-4 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 ${
             gameState.kifu.moves.length > 0 && !gameStatus.isOver
               ? 'bg-blue-500 text-white hover:bg-blue-600'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
           disabled={gameState.kifu.moves.length === 0 || gameStatus.isOver}
+          aria-label="一手戻す（待った）"
         >
           待った
         </button>
@@ -191,8 +193,9 @@ export const GameController: React.FC<GameControllerProps> = ({
         {/* 中断ボタン */}
         <button
           onClick={() => setShowPauseDialog(true)}
-          className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors"
+          className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-400"
           disabled={gameStatus.isOver}
+          aria-label="対局を中断する"
         >
           中断
         </button>
@@ -200,8 +203,9 @@ export const GameController: React.FC<GameControllerProps> = ({
         {/* 投了ボタン */}
         <button
           onClick={() => setShowResignDialog(true)}
-          className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+          className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400"
           disabled={gameStatus.isOver}
+          aria-label="投了する"
         >
           投了
         </button>

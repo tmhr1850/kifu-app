@@ -19,6 +19,7 @@ export default function PromotionModal({
 }: PromotionModalProps) {
   const promoteButtonRef = useRef<HTMLButtonElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -28,8 +29,51 @@ export default function PromotionModal({
       } else if (promoteButtonRef.current) {
         promoteButtonRef.current.focus();
       }
+
+      // Escキーでモーダルを閉じる
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && canCancel) {
+          onCancel();
+        }
+      };
+
+      document.addEventListener('keydown', handleEscape);
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+      };
     }
-  }, [isOpen, canCancel]);
+  }, [isOpen, canCancel, onCancel]);
+
+  // フォーカストラップの実装
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      const focusableElements = modalRef.current?.querySelectorAll(
+        'button:not([disabled])'
+      ) as NodeListOf<HTMLElement>;
+
+      if (!focusableElements || focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleTabKey);
+    return () => {
+      document.removeEventListener('keydown', handleTabKey);
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -40,7 +84,7 @@ export default function PromotionModal({
       aria-modal="true"
       aria-labelledby="promotion-title"
     >
-      <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4 shadow-2xl">
+      <div ref={modalRef} className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4 shadow-2xl">
         <h2 
           id="promotion-title"
           className="text-xl font-bold text-center mb-4"
