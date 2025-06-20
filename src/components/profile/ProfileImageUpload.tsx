@@ -5,12 +5,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { Upload, Loader2, User } from 'lucide-react'
 import Image from 'next/image'
+import { validateImageFile, sanitizeFilename } from '@/utils/security'
+import { useProfile } from '@/hooks/useProfile'
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'] // Removed GIF to prevent animated image exploits
 
 export function ProfileImageUpload() {
-  const { user, profile, updateProfile } = useAuth()
+  const { user } = useAuth()
+  const { profile, updateProfile } = useProfile()
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -19,14 +21,10 @@ export function ProfileImageUpload() {
     const file = e.target.files?.[0]
     if (!file || !user) return
 
-    // バリデーション
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('JPEG、PNG、GIF、WebP形式の画像のみアップロード可能です')
-      return
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      setError('ファイルサイズは5MB以下にしてください')
+    // Enhanced validation using security utils
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      setError(validation.reason || '画像の検証に失敗しました')
       return
     }
 
@@ -44,8 +42,8 @@ export function ProfileImageUpload() {
 
       // 新しい画像をアップロード
       const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}.${fileExt}`
-      const filePath = `${user.id}/${fileName}`
+      const sanitizedFilename = sanitizeFilename(`${Date.now()}.${fileExt}`)
+      const filePath = `${user.id}/${sanitizedFilename}`
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -126,8 +124,8 @@ export function ProfileImageUpload() {
       )}
 
       <p className="text-xs text-gray-500 text-center">
-        JPEG、PNG、GIF、WebP形式<br />
-        最大5MBまで
+        JPEG、PNG、WebP形式<br />
+        最大2MBまで
       </p>
     </div>
   )

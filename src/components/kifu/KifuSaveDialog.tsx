@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { GameInfo } from '@/types/kifu';
+import { sanitizeProfileText } from '@/utils/security';
 
 interface KifuSaveDialogProps {
   isOpen: boolean;
@@ -28,7 +29,16 @@ export const KifuSaveDialog: React.FC<KifuSaveDialogProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(gameInfo);
+    
+    // Sanitize all inputs before saving
+    const sanitizedInfo: Partial<GameInfo> = {
+      sente: sanitizeProfileText(gameInfo.sente || ''),
+      gote: sanitizeProfileText(gameInfo.gote || ''),
+      event: gameInfo.event ? sanitizeProfileText(gameInfo.event) : undefined,
+      site: gameInfo.site ? sanitizeProfileText(gameInfo.site) : undefined,
+    };
+    
+    onSave(sanitizedInfo);
     onClose();
   };
 
@@ -48,6 +58,7 @@ export const KifuSaveDialog: React.FC<KifuSaveDialogProps> = ({
               onChange={(e) => setGameInfo({ ...gameInfo, sente: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               required
+              maxLength={50}
             />
           </div>
 
@@ -61,6 +72,7 @@ export const KifuSaveDialog: React.FC<KifuSaveDialogProps> = ({
               onChange={(e) => setGameInfo({ ...gameInfo, gote: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               required
+              maxLength={50}
             />
           </div>
 
@@ -73,6 +85,7 @@ export const KifuSaveDialog: React.FC<KifuSaveDialogProps> = ({
               value={gameInfo.event || ''}
               onChange={(e) => setGameInfo({ ...gameInfo, event: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              maxLength={100}
             />
           </div>
 
@@ -85,6 +98,7 @@ export const KifuSaveDialog: React.FC<KifuSaveDialogProps> = ({
               value={gameInfo.site || ''}
               onChange={(e) => setGameInfo({ ...gameInfo, site: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              maxLength={100}
             />
           </div>
 

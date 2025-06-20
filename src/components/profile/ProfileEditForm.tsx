@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
 import { UpdateProfileData } from '@/types/profile'
 import { Check, Loader2 } from 'lucide-react'
+import { sanitizeUsername, sanitizeProfileText } from '@/utils/security'
+import { useProfile } from '@/hooks/useProfile'
 
 const RANK_OPTIONS = [
   { value: '', label: '未設定' },
@@ -29,7 +30,7 @@ const RANK_OPTIONS = [
 ]
 
 export function ProfileEditForm() {
-  const { profile, updateProfile } = useAuth()
+  const { profile, updateProfile } = useProfile()
   const [formData, setFormData] = useState<UpdateProfileData>({
     username: '',
     full_name: '',
@@ -59,7 +60,15 @@ export function ProfileEditForm() {
     setError(null)
     setSuccess(false)
 
-    const { error } = await updateProfile(formData)
+    // Sanitize user inputs before submission
+    const sanitizedData: UpdateProfileData = {
+      ...formData,
+      username: sanitizeUsername(formData.username),
+      full_name: sanitizeProfileText(formData.full_name),
+      bio: sanitizeProfileText(formData.bio),
+    }
+
+    const { error } = await updateProfile(sanitizedData)
 
     if (error) {
       setError(error.message)
@@ -97,6 +106,10 @@ export function ProfileEditForm() {
           onChange={handleChange}
           className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="例: shogi_player"
+          maxLength={20}
+          minLength={3}
+          pattern="^[\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\s\-_.]+$"
+          title="ユーザー名は3〜20文字で、英数字、日本語、ハイフン、アンダースコア、ピリオドが使用できます"
         />
       </div>
 
@@ -112,6 +125,7 @@ export function ProfileEditForm() {
           onChange={handleChange}
           className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="例: 山田太郎"
+          maxLength={50}
         />
       </div>
 
@@ -146,6 +160,7 @@ export function ProfileEditForm() {
           rows={4}
           className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           placeholder="自己紹介文を入力してください..."
+          maxLength={500}
         />
       </div>
 
