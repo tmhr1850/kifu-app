@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Move, Player } from '@/types/shogi'
 import { OnlineGameState, TimeData } from '@/types/online'
 import { makeMove as makeMoveLogic, createNewGame } from '@/utils/shogi/game'
+import { captureException, addBreadcrumb } from '@/utils/monitoring'
 
 export function useOnlineGame() {
   const { socket, currentRoom, makeMove: sendMove, syncTime } = useSocket()
@@ -21,52 +22,76 @@ export function useOnlineGame() {
     if (!socket || !currentRoom || !user) return
 
     const handleGameStart = ({ room }: { room: { id: string; players: Array<{ id: string; name: string; color: string }>; timeControl?: { initial: number; periods?: number } } }) => {
-      const player = room.players.find((p) => p.id === user.id)
-      const opponent = room.players.find((p) => p.id !== user.id)
-      
-      if (player && opponent) {
-        const color = player.color === Player.SENTE ? Player.SENTE : Player.GOTE
-        setMyColor(color)
-        setOpponentInfo({ id: opponent.id, name: opponent.name })
+      try {
+        addBreadcrumb({
+          message: 'Game start event received',
+          category: 'online-game',
+          data: { roomId: room.id }
+        })
+
+        const player = room.players.find((p) => p.id === user.id)
+        const opponent = room.players.find((p) => p.id !== user.id)
         
-        // 新しいゲームを作成
-        const newGame = createNewGame()
-        const onlineGame: OnlineGameState = {
-          ...newGame,
-          roomId: room.id,
-          onlineStatus: 'playing'
+        if (player && opponent) {
+          const color = player.color === Player.SENTE ? Player.SENTE : Player.GOTE
+          setMyColor(color)
+          setOpponentInfo({ id: opponent.id, name: opponent.name })
+          
+          // 新しいゲームを作成
+          const newGame = createNewGame()
+          const onlineGame: OnlineGameState = {
+            ...newGame,
+            roomId: room.id,
+            onlineStatus: 'playing'
+          }
+          setGameState(onlineGame)
+          setIsMyTurn(color === Player.SENTE)
+          
+          // 時間制御の初期化
+          if (room.timeControl) {
+            setTimeData({
+              [Player.SENTE]: {
+                remaining: room.timeControl.initial,
+                periods: room.timeControl.periods
+              },
+              [Player.GOTE]: {
+                remaining: room.timeControl.initial,
+                periods: room.timeControl.periods
+              },
+              lastUpdate: Date.now()
+            })
+          }
         }
-        setGameState(onlineGame)
-        setIsMyTurn(color === Player.SENTE)
-        
-        // 時間制御の初期化
-        if (room.timeControl) {
-          setTimeData({
-            [Player.SENTE]: {
-              remaining: room.timeControl.initial,
-              periods: room.timeControl.periods
-            },
-            [Player.GOTE]: {
-              remaining: room.timeControl.initial,
-              periods: room.timeControl.periods
-            },
-            lastUpdate: Date.now()
-          })
-        }
+      } catch (error) {
+        captureException(error as Error, {
+          context: 'useOnlineGame.handleGameStart',
+          roomId: room.id
+        })
       }
     }
 
     const handleMoveMade = ({ gameState: newState }: { move: Move; gameState: OnlineGameState }) => {
-      setGameState(prev => {
-        if (!prev) return null
-        return {
-          ...newState,
-          roomId: prev.roomId,
-          onlineStatus: prev.onlineStatus,
-          timeData: prev.timeData
-        }
-      })
-      setIsMyTurn(true)
+      try {
+        addBreadcrumb({
+          message: 'Move made event received',
+          category: 'online-game'
+        })
+
+        setGameState(prev => {
+          if (!prev) return null
+          return {
+            ...newState,
+            roomId: prev.roomId,
+            onlineStatus: prev.onlineStatus,
+            timeData: prev.timeData
+          }
+        })
+        setIsMyTurn(true)
+      } catch (error) {
+        captureException(error as Error, {
+          context: 'useOnlineGame.handleMoveMade'
+        })
+      }
     }
 
     const handleTimeSynced = ({ timeData }: { timeData: TimeData }) => {
@@ -74,23 +99,47 @@ export function useOnlineGame() {
     }
 
     const handleOpponentDisconnected = () => {
-      setGameState(prev => {
-        if (!prev) return null
-        return {
-          ...prev,
-          onlineStatus: 'paused'
-        }
-      })
+      try {
+        addBreadcrumb({
+          message: 'Opponent disconnected',
+          category: 'online-game',
+          level: 'warning'
+        })
+
+        setGameState(prev => {
+          if (!prev) return null
+          return {
+            ...prev,
+            onlineStatus: 'paused'
+          }
+        })
+      } catch (error) {
+        captureException(error as Error, {
+          context: 'useOnlineGame.handleOpponentDisconnected'
+        })
+      }
     }
 
     const handleOpponentReconnected = () => {
-      setGameState(prev => {
-        if (!prev) return null
-        return {
-          ...prev,
-          onlineStatus: 'playing'
-        }
-      })
+      try {
+        addBreadcrumb({
+          message: 'Opponent reconnected',
+          category: 'online-game',
+          level: 'info'
+        })
+
+        setGameState(prev => {
+          if (!prev) return null
+          return {
+            ...prev,
+            onlineStatus: 'playing'
+          }
+        })
+      } catch (error) {
+        captureException(error as Error, {
+          context: 'useOnlineGame.handleOpponentReconnected'
+        })
+      }
     }
 
     const handleGameResigned = () => {
@@ -183,39 +232,65 @@ export function useOnlineGame() {
   }, [timeData, gameState, myColor, isMyTurn])
 
   // 移動を実行
-  const makeMove = useCallback((move: Move) => {
-    if (!gameState || !isMyTurn || !myColor) return false
-
-    // 自分の手番かチェック
-    if (gameState.currentPlayer !== myColor) return false
-
-    // ローカルで移動を実行
-    const newState = makeMoveLogic(gameState, move)
-    if (!newState) return false
-
-    // 状態を更新
-    setGameState({
-      ...newState,
-      roomId: gameState.roomId,
-      onlineStatus: gameState.onlineStatus,
-      timeData: gameState.timeData
-    })
-    setIsMyTurn(false)
-
-    // サーバーに送信
-    sendMove(move, newState)
-
-    // 時間を同期
-    if (timeData) {
-      const newTimeData = {
-        ...timeData,
-        lastUpdate: Date.now()
+  const makeMove = useCallback((from: string, to: string, promote?: boolean) => {
+    try {
+      if (!gameState || !isMyTurn || !myColor) {
+        throw new Error('ゲームの状態が無効です')
       }
-      setTimeData(newTimeData)
-      syncTime(newTimeData)
-    }
 
-    return true
+      // 自分の手番かチェック
+      if (gameState.currentPlayer !== myColor) {
+        throw new Error('あなたの手番ではありません')
+      }
+
+      const move: Move = { from, to, promote }
+
+      // ローカルで移動を実行
+      const newState = makeMoveLogic(gameState, move)
+      if (!newState) {
+        throw new Error('無効な着手です')
+      }
+
+      addBreadcrumb({
+        message: 'Making move',
+        category: 'online-game',
+        data: { from, to, promote }
+      })
+
+      // 状態を更新
+      setGameState({
+        ...newState,
+        roomId: gameState.roomId,
+        onlineStatus: gameState.onlineStatus,
+        timeData: gameState.timeData
+      })
+      setIsMyTurn(false)
+
+      // サーバーに送信
+      sendMove(move, newState)
+
+      // 時間を同期
+      if (timeData) {
+        const newTimeData = {
+          ...timeData,
+          lastUpdate: Date.now()
+        }
+        setTimeData(newTimeData)
+        syncTime(newTimeData)
+      }
+
+      return true
+    } catch (error) {
+      captureException(error as Error, {
+        context: 'useOnlineGame.makeMove',
+        from,
+        to,
+        promote,
+        myColor,
+        isMyTurn
+      })
+      throw error
+    }
   }, [gameState, isMyTurn, myColor, sendMove, syncTime, timeData])
 
   return {

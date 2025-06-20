@@ -29,6 +29,7 @@ import {
   PositionHistory,
 } from './repetition';
 import { switchPlayerClock } from './timeManager';
+import { captureException } from '@/utils/monitoring';
 
 // 新しいゲームを開始
 export function createNewGame(): GameState {
@@ -43,78 +44,87 @@ export function createNewGame(): GameState {
 
 // 移動を実行
 export function makeMove(gameState: GameState, move: Move): GameState | null {
-  // 移動が合法かチェック
-  if (!isValidMove(gameState, move)) {
-    return null;
-  }
-
-  // 新しい状態を作成
-  const newBoard = copyBoard(gameState.board);
-  const newHandPieces = copyHandPieces(gameState.handPieces);
-  
-  // 捕獲される駒を記録
-  const moveWithCapture = { ...move };
-  if (move.from) {
-    const capturedPiece = getPieceAt(newBoard, move.to);
-    if (capturedPiece) {
-      moveWithCapture.captured = capturedPiece;
-    }
-  }
-  
-  const newMoveHistory = [...gameState.moveHistory, moveWithCapture];
-
-  if (move.from) {
-    // 通常の移動
-    const piece = getPieceAt(newBoard, move.from);
-    if (!piece) return null;
-
-    // 移動元を空にする
-    setPieceAt(newBoard, move.from, null);
-
-    // 相手の駒を取る場合
-    const capturedPiece = getPieceAt(newBoard, move.to);
-    if (capturedPiece) {
-      // 成り駒は元に戻して持ち駒に
-      const handPieceType = unpromoteForHand(capturedPiece.type);
-      addToHand(newHandPieces, gameState.currentPlayer, handPieceType);
-    }
-
-    // 成る場合
-    let movedPiece = piece;
-    if (move.promote) {
-      movedPiece = promotePiece(piece);
-    }
-
-    // 移動先に配置
-    setPieceAt(newBoard, move.to, movedPiece);
-  } else {
-    // 持ち駒を打つ
-    if (!removeFromHand(newHandPieces, gameState.currentPlayer, move.piece.type)) {
+  try {
+    // 移動が合法かチェック
+    if (!isValidMove(gameState, move)) {
       return null;
     }
-    setPieceAt(newBoard, move.to, move.piece);
+
+    // 新しい状態を作成
+    const newBoard = copyBoard(gameState.board);
+    const newHandPieces = copyHandPieces(gameState.handPieces);
+    
+    // 捕獲される駒を記録
+    const moveWithCapture = { ...move };
+    if (move.from) {
+      const capturedPiece = getPieceAt(newBoard, move.to);
+      if (capturedPiece) {
+        moveWithCapture.captured = capturedPiece;
+      }
+    }
+    
+    const newMoveHistory = [...gameState.moveHistory, moveWithCapture];
+
+    if (move.from) {
+      // 通常の移動
+      const piece = getPieceAt(newBoard, move.from);
+      if (!piece) return null;
+
+      // 移動元を空にする
+      setPieceAt(newBoard, move.from, null);
+
+      // 相手の駒を取る場合
+      const capturedPiece = getPieceAt(newBoard, move.to);
+      if (capturedPiece) {
+        // 成り駒は元に戻して持ち駒に
+        const handPieceType = unpromoteForHand(capturedPiece.type);
+        addToHand(newHandPieces, gameState.currentPlayer, handPieceType);
+      }
+
+      // 成る場合
+      let movedPiece = piece;
+      if (move.promote) {
+        movedPiece = promotePiece(piece);
+      }
+
+      // 移動先に配置
+      setPieceAt(newBoard, move.to, movedPiece);
+    } else {
+      // 持ち駒を打つ
+      if (!removeFromHand(newHandPieces, gameState.currentPlayer, move.piece.type)) {
+        return null;
+      }
+      setPieceAt(newBoard, move.to, move.piece);
+    }
+
+    // 次のプレイヤーに交代
+    const nextPlayer = getOpponentPlayer(gameState.currentPlayer);
+
+    // 時計の更新を処理
+    let clockState = gameState.clockState;
+    const timeControl = gameState.timeControl;
+    
+    if (clockState && timeControl) {
+      clockState = switchPlayerClock(clockState, gameState.currentPlayer, timeControl);
+    }
+
+    return {
+      board: newBoard,
+      handPieces: newHandPieces,
+      currentPlayer: nextPlayer,
+      moveHistory: newMoveHistory,
+      positionHistory: gameState.positionHistory,
+      clockState,
+      timeControl,
+    };
+  } catch (error) {
+    captureException(error as Error, {
+      context: 'game.makeMove',
+      move,
+      currentPlayer: gameState.currentPlayer
+    });
+    return null;
   }
-
-  // 次のプレイヤーに交代
-  const nextPlayer = getOpponentPlayer(gameState.currentPlayer);
-
-  // 時計の更新を処理
-  let clockState = gameState.clockState;
-  const timeControl = gameState.timeControl;
-  
-  if (clockState && timeControl) {
-    clockState = switchPlayerClock(clockState, gameState.currentPlayer, timeControl);
-  }
-
-  return {
-    board: newBoard,
-    handPieces: newHandPieces,
-    currentPlayer: nextPlayer,
-    moveHistory: newMoveHistory,
-    positionHistory: gameState.positionHistory,
-    clockState,
-    timeControl,
-  };
 }
 
 // ゲームの状態をチェック
@@ -125,101 +135,139 @@ export interface GameStatus {
 }
 
 export function getGameStatus(gameState: GameState): GameStatus {
-  // 投了チェック
-  if (gameState.resigned) {
-    return {
-      isOver: true,
-      winner: getOpponentPlayer(gameState.currentPlayer),
-      reason: 'resignation',
-    };
-  }
-
-  // 詰みチェック
-  if (isCheckmateSync(gameState)) {
-    return {
-      isOver: true,
-      winner: getOpponentPlayer(gameState.currentPlayer),
-      reason: 'checkmate',
-    };
-  }
-
-  // ステイルメイトチェック
-  if (isStalemateSync(gameState)) {
-    return {
-      isOver: true,
-      winner: null,
-      reason: 'stalemate',
-    };
-  }
-
-  // 千日手チェック
-  if (gameState.positionHistory) {
-    // isInCheckは失敗する可能性があるので、try-catchで囲む
-    let currentIsInCheck = false
-    try {
-      currentIsInCheck = isInCheck(gameState.board, gameState.currentPlayer)
-    } catch {
-      // 王が見つからない場合などは無視
+  try {
+    // 投了チェック
+    if (gameState.resigned) {
+      return {
+        isOver: true,
+        winner: getOpponentPlayer(gameState.currentPlayer),
+        reason: 'resignation',
+      };
     }
-    
-    const repetitionResult = detectRepetition(
-      gameState,
-      gameState.positionHistory as PositionHistory,
-      currentIsInCheck
-    )
-    
-    if (repetitionResult.isRepetition) {
-      if (repetitionResult.isPerpetualCheck) {
-        // 連続王手の千日手は王手をかけている側の負け
+
+    // 詰みチェック
+    try {
+      if (isCheckmateSync(gameState)) {
         return {
           isOver: true,
-          winner: gameState.currentPlayer, // 王手をかけられている側の勝ち
-          reason: 'perpetual_check',
+          winner: getOpponentPlayer(gameState.currentPlayer),
+          reason: 'checkmate',
         };
-      } else {
-        // 通常の千日手は引き分け
+      }
+    } catch (error) {
+      captureException(error as Error, {
+        context: 'game.getGameStatus.checkmate',
+        currentPlayer: gameState.currentPlayer
+      });
+    }
+
+    // ステイルメイトチェック
+    try {
+      if (isStalemateSync(gameState)) {
         return {
           isOver: true,
           winner: null,
-          reason: 'repetition',
+          reason: 'stalemate',
         };
       }
+    } catch (error) {
+      captureException(error as Error, {
+        context: 'game.getGameStatus.stalemate',
+        currentPlayer: gameState.currentPlayer
+      });
     }
-  }
 
-  // 持将棋チェック
-  if (checkImpasse(gameState)) {
-    // 点数計算で勝敗を決める
-    const sentePoints = calculateMaterialPoints(gameState, Player.SENTE);
-    const gotePoints = calculateMaterialPoints(gameState, Player.GOTE);
-
-    if (sentePoints >= 24 && gotePoints < 24) {
-      return {
-        isOver: true,
-        winner: Player.SENTE,
-        reason: 'impasse',
-      };
-    } else if (gotePoints >= 24 && sentePoints < 24) {
-      return {
-        isOver: true,
-        winner: Player.GOTE,
-        reason: 'impasse',
-      };
-    } else {
-      // 両者24点以上または両者24点未満の場合は引き分け
-      return {
-        isOver: true,
-        winner: null,
-        reason: 'impasse',
-      };
+    // 千日手チェック
+    if (gameState.positionHistory) {
+      // isInCheckは失敗する可能性があるので、try-catchで囲む
+      let currentIsInCheck = false
+      try {
+        currentIsInCheck = isInCheck(gameState.board, gameState.currentPlayer)
+      } catch (error) {
+        // 王が見つからない場合などは無視
+        captureException(error as Error, {
+          context: 'game.getGameStatus.isInCheck',
+          currentPlayer: gameState.currentPlayer
+        });
+      }
+      
+      const repetitionResult = detectRepetition(
+        gameState,
+        gameState.positionHistory as PositionHistory,
+        currentIsInCheck
+      )
+      
+      if (repetitionResult.isRepetition) {
+        if (repetitionResult.isPerpetualCheck) {
+          // 連続王手の千日手は王手をかけている側の負け
+          return {
+            isOver: true,
+            winner: gameState.currentPlayer, // 王手をかけられている側の勝ち
+            reason: 'perpetual_check',
+          };
+        } else {
+          // 通常の千日手は引き分け
+          return {
+            isOver: true,
+            winner: null,
+            reason: 'repetition',
+          };
+        }
+      }
     }
-  }
 
-  return {
-    isOver: false,
-    winner: null,
-    reason: null,
-  };
+    // 持将棋チェック
+    try {
+      if (checkImpasse(gameState)) {
+        // 点数計算で勝敗を決める
+        const sentePoints = calculateMaterialPoints(gameState, Player.SENTE);
+        const gotePoints = calculateMaterialPoints(gameState, Player.GOTE);
+
+        if (sentePoints >= 24 && gotePoints < 24) {
+          return {
+            isOver: true,
+            winner: Player.SENTE,
+            reason: 'impasse',
+          };
+        } else if (gotePoints >= 24 && sentePoints < 24) {
+          return {
+            isOver: true,
+            winner: Player.GOTE,
+            reason: 'impasse',
+          };
+        } else {
+          // 両者24点以上または両者24点未満の場合は引き分け
+          return {
+            isOver: true,
+            winner: null,
+            reason: 'impasse',
+          };
+        }
+      }
+    } catch (error) {
+      captureException(error as Error, {
+        context: 'game.getGameStatus.impasse',
+        currentPlayer: gameState.currentPlayer
+      });
+    }
+
+    return {
+      isOver: false,
+      winner: null,
+      reason: null,
+    };
+  } catch (error) {
+    captureException(error as Error, {
+      context: 'game.getGameStatus',
+      currentPlayer: gameState.currentPlayer
+    });
+    // エラーが発生した場合はゲーム続行とする
+    return {
+      isOver: false,
+      winner: null,
+      reason: null,
+    };
+  }
 }
 
 // 移動の表記法（簡易版）
