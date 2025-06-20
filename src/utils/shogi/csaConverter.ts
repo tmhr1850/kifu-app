@@ -177,7 +177,9 @@ export function gameToCsaFormat(record: KifuRecord): string {
 /**
  * Check if variation tree has any variations (not just main line)
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function hasVariations(root: any): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function checkNode(node: any): boolean {
     if (node.children && node.children.length > 1) {
       return true;

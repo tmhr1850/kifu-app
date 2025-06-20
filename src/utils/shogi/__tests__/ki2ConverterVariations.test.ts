@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import { gameToKi2Format, ki2FormatToGame } from '../ki2Converter';
-import { KifuRecord, VariationNode } from '@/types/kifu';
+import { KifuRecord } from '@/types/kifu';
 import { Player } from '@/types/shogi';
 import { createRootNode, createVariationNode, getMainLineMoves } from '../variations';
 
