@@ -198,3 +198,35 @@ function getAllPausedGames(): PausedGame[] {
     return [];
   }
 }
+
+// 期限切れ対局の自動削除機能
+export function deleteExpiredPausedGames(expirationDays: number = 7): number {
+  const pausedGames = getAllPausedGames();
+  const now = new Date();
+  const expirationTime = expirationDays * 24 * 60 * 60 * 1000; // days to milliseconds
+  
+  const activeGames = pausedGames.filter(game => {
+    const pausedTime = new Date(game.pausedAt).getTime();
+    const elapsed = now.getTime() - pausedTime;
+    return elapsed < expirationTime;
+  });
+  
+  const deletedCount = pausedGames.length - activeGames.length;
+  
+  if (deletedCount > 0) {
+    localStorage.setItem(PAUSED_GAMES_KEY, JSON.stringify(activeGames));
+  }
+  
+  return deletedCount;
+}
+
+// 対局の残り保存期限を計算
+export function getRemainingDays(pausedAt: string, expirationDays: number = 7): number {
+  const now = new Date();
+  const pausedTime = new Date(pausedAt).getTime();
+  const elapsed = now.getTime() - pausedTime;
+  const expirationTime = expirationDays * 24 * 60 * 60 * 1000;
+  const remaining = expirationTime - elapsed;
+  
+  return Math.max(0, Math.ceil(remaining / (24 * 60 * 60 * 1000)));
+}

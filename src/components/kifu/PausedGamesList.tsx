@@ -1,7 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { listPausedGames, deletePausedGame, PausedGame } from '@/utils/shogi/storageService';
+import { 
+  listPausedGames, 
+  deletePausedGame, 
+  deleteExpiredPausedGames,
+  getRemainingDays,
+  PausedGame 
+} from '@/utils/shogi/storageService';
 import { useRouter } from 'next/navigation';
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -12,6 +18,11 @@ export const PausedGamesList: React.FC = () => {
   const router = useRouter();
 
   useEffect(() => {
+    // 期限切れの対局を自動削除
+    const deletedCount = deleteExpiredPausedGames();
+    if (deletedCount > 0) {
+      console.log(`${deletedCount}件の期限切れ対局を削除しました`);
+    }
     loadPausedGames();
   }, []);
 
@@ -90,6 +101,13 @@ export const PausedGamesList: React.FC = () => {
               <p>☗{game.kifuRecord.gameInfo.sente || '先手'} vs ☖{game.kifuRecord.gameInfo.gote || '後手'}</p>
               <p>手数: {game.kifuRecord.moves.length}</p>
               <p>中断日時: {formatDate(game.pausedAt)}</p>
+              <p className={`font-semibold ${
+                getRemainingDays(game.pausedAt) <= 1 ? 'text-red-600' : 
+                getRemainingDays(game.pausedAt) <= 3 ? 'text-orange-500' : 
+                'text-gray-600'
+              }`}>
+                保存期限: あと{getRemainingDays(game.pausedAt)}日
+              </p>
             </div>
 
             <div className="flex gap-2">
