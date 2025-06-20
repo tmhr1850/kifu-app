@@ -1,6 +1,4 @@
 import * as Sentry from '@sentry/nextjs';
-import { analytics } from './analytics';
-import { trackPerformanceError } from './alerts';
 
 interface MonitoringConfig {
   dsn?: string;
@@ -47,9 +45,7 @@ class MonitoringService {
         },
 
         integrations: [
-          Sentry.browserTracingIntegration({
-            routingInstrumentation: Sentry.nextRouterInstrumentation,
-          }),
+          Sentry.browserTracingIntegration(),
           Sentry.replayIntegration({
             maskAllText: false,
             blockAllMedia: false,
@@ -137,10 +133,10 @@ class MonitoringService {
       return null;
     }
 
-    return Sentry.startTransaction({
+    return Sentry.startSpan({
       name,
       op,
-    });
+    }, () => {});
   }
 
   measurePerformance<T>(

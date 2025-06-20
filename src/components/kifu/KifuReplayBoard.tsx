@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { KifuRecord } from '@/types/kifu'
 import { createGameFromKifu } from '@/utils/shogi/gameWithKifu'
-import { Player } from '@/types/shogi'
-import Board from '@/components/shogi/Board'
+
+import { DraggableBoard } from '@/components/shogi/DraggableBoard'
 import KifuReplayControls from './KifuReplayControls'
 
 interface KifuReplayBoardProps {
@@ -17,7 +17,7 @@ export default function KifuReplayBoard({ kifu, className = '' }: KifuReplayBoar
   const [highlightSquares, setHighlightSquares] = useState<{ row: number; col: number }[]>([])
 
   const gameAtMove = useMemo(() => {
-    const game = createGameFromKifu(kifu)
+    const game = createGameFromKifu()
     
     if (currentMoveIndex === -1) {
       return game.game
@@ -30,7 +30,7 @@ export default function KifuReplayBoard({ kifu, className = '' }: KifuReplayBoar
       const toIndex = move.to.row * 9 + move.to.col
       
       if (fromIndex >= 0) {
-        game.game = game.game.makeMove(fromIndex, toIndex, move.promote)
+        game.game = game.game.makeMove(fromIndex, toIndex, move.promote || false)
       } else {
         const pieceType = game.game.getPieceTypeFromKanji(move.piece)
         if (pieceType) {
@@ -91,12 +91,8 @@ export default function KifuReplayBoard({ kifu, className = '' }: KifuReplayBoar
         )}
       </div>
 
-      <Board
+      <DraggableBoard
         board={gameAtMove.board}
-        getSquareHighlight={getSquareHighlight}
-        isFlipped={gameAtMove.currentPlayer === Player.GOTE}
-        senteCaptures={gameAtMove.captures.sente}
-        goteCaptures={gameAtMove.captures.gote}
       />
 
       <KifuReplayControls

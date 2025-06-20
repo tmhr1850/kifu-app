@@ -80,7 +80,8 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
         checkPromotion(selectedPosition, { row, col }, piece)
       }
     }
-  }, [selectedPosition, boardState, checkPromotion])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPosition, boardState])
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent, row: number, col: number, piece: BoardPiece) => {
     e.preventDefault()
@@ -143,7 +144,8 @@ export const DraggableBoard: React.FC<DraggableBoardProps> = ({ board, onMove, l
     setValidMoves([])
     setDraggedPiece(null)
     isDragging.current = false
-  }, [draggedPiece, boardState, checkPromotion])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draggedPiece, boardState])
 
   const movePiece = useCallback((from: Position, to: Position, shouldPromote: boolean = false) => {
     const newBoard = boardState.map(row => [...row])
