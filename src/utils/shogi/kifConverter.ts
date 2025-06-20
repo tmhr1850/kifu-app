@@ -397,8 +397,8 @@ function variationTreeToKifLines(root: VariationNode): string[] {
       const mainChild = node.children[0];
       
       // Process other children as variations
-      for (let i = 1; i < node.children.length; i++) {
-        const varChild = node.children[i];
+      for (let j = 1; j < node.children.length; j++) {
+        const varChild = node.children[j];
         if (!processedVariations.has(varChild.id)) {
           processedVariations.add(varChild.id);
           lines.push('');
@@ -426,8 +426,8 @@ function variationTreeToKifLines(root: VariationNode): string[] {
       const mainChild = node.children[0];
       
       // Process additional variations first
-      for (let i = 1; i < node.children.length; i++) {
-        const varChild = node.children[i];
+      for (let k = 1; k < node.children.length; k++) {
+        const varChild = node.children[k];
         if (!processedVariations.has(varChild.id)) {
           processedVariations.add(varChild.id);
           lines.push('');

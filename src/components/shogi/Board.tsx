@@ -62,11 +62,10 @@ export const Board: React.FC<BoardProps> = ({ onPieceClick, onCellClick }) => {
   useEffect(() => {
     const boardElement = document.querySelector('[role="grid"]');
     if (boardElement) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      boardElement.addEventListener('keydown', handleKeyDown as any);
+      const eventHandler = handleKeyDown as unknown as EventListener;
+      boardElement.addEventListener('keydown', eventHandler);
       return () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        boardElement.removeEventListener('keydown', handleKeyDown as any);
+        boardElement.removeEventListener('keydown', eventHandler);
       };
     }
   }, [handleKeyDown])
