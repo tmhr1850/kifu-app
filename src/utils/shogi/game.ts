@@ -436,6 +436,9 @@ export function checkImpasse(gameState: GameState): boolean {
 }
 
 // 駒の点数計算（持将棋判定用）
+// Alias for backward compatibility
+export const executeMove = makeMove;
+
 export function calculateMaterialPoints(gameState: GameState, player: Player): number {
   const pointMap: Partial<Record<PieceType, number>> = {
     [PieceType.FU]: 1,

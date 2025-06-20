@@ -207,3 +207,6 @@ export function unpromoteForHand(pieceType: PieceType): PieceType {
   
   return unpromoteMap[pieceType] || pieceType;
 }
+
+// Alias for backward compatibility
+export type { Board } from '@/types/shogi';

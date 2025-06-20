@@ -198,3 +198,6 @@ function getAllPausedGames(): PausedGame[] {
     return [];
   }
 }
+
+// Alias for backward compatibility
+export const getStoredKifuRecords = listKifuRecords;
