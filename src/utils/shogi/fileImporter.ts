@@ -1,5 +1,6 @@
 import { KifuRecord } from '@/types/kifu';
 import { parseKifuFile } from './kifuFormatDetector';
+import { validateFileSize, validateFileExtension, validateKifuContent, sanitizeFilename } from '@/utils/security';
 
 export interface ImportResult {
   success: boolean;
@@ -10,7 +11,28 @@ export interface ImportResult {
 
 export async function importKifuFile(file: File): Promise<ImportResult> {
   try {
+    // Validate file before processing
+    const validation = validateKifuFile(file);
+    if (!validation.valid) {
+      return {
+        success: false,
+        fileName: file.name,
+        error: validation.reason
+      };
+    }
+    
     const content = await file.text();
+    
+    // Validate content for malicious patterns
+    const contentValidation = validateKifuContent(content);
+    if (!contentValidation.valid) {
+      return {
+        success: false,
+        fileName: file.name,
+        error: contentValidation.reason
+      };
+    }
+    
     const { gameInfo, moves } = parseKifuFile(content);
     
     const record: KifuRecord = {
@@ -40,25 +62,40 @@ export async function importMultipleKifuFiles(files: File[]): Promise<ImportResu
   return results;
 }
 
+function validateKifuFile(file: File): { valid: boolean; reason?: string } {
+  // Sanitize filename
+  const sanitizedName = sanitizeFilename(file.name);
+  
+  // Check file extension
+  if (!validateFileExtension(sanitizedName, ['kif', 'ki2', 'csa', 'txt'])) {
+    return { valid: false, reason: 'Invalid file extension. Only .kif, .ki2, .csa, and .txt files are allowed.' };
+  }
+  
+  // Check file size (max 1MB for security)
+  if (!validateFileSize(file, 1)) {
+    return { valid: false, reason: 'File too large (maximum 1MB)' };
+  }
+  
+  // Check MIME type if available
+  const allowedMimeTypes = ['text/plain', 'application/octet-stream', ''];
+  if (file.type && !allowedMimeTypes.includes(file.type)) {
+    return { valid: false, reason: 'Invalid file type' };
+  }
+  
+  return { valid: true };
+}
+
 export function validateKifuFiles(files: File[]): { valid: File[]; invalid: { file: File; reason: string }[] } {
   const valid: File[] = [];
   const invalid: { file: File; reason: string }[] = [];
   
   for (const file of files) {
-    // Check file extension
-    const ext = file.name.toLowerCase().split('.').pop();
-    if (!ext || !['kif', 'ki2', 'csa', 'txt'].includes(ext)) {
-      invalid.push({ file, reason: 'Invalid file extension' });
-      continue;
+    const validation = validateKifuFile(file);
+    if (validation.valid) {
+      valid.push(file);
+    } else {
+      invalid.push({ file, reason: validation.reason || 'Unknown error' });
     }
-    
-    // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      invalid.push({ file, reason: 'File too large (max 10MB)' });
-      continue;
-    }
-    
-    valid.push(file);
   }
   
   return { valid, invalid };
