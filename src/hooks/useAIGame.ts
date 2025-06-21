@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Move, Player } from '@/types/shogi'
 import { GameState } from '@/types/shogi'
 import { makeMove as makeMoveLogic, createNewGame, getGameStatus } from '@/utils/shogi/game'
+import { validateMoveWithAlert } from '@/utils/shogi/validators'
 import { getAIEngine } from '@/utils/ai/engine'
 import { AISettings, AIDifficulty, AITimeSettings } from '@/utils/ai/types'
 
@@ -85,6 +86,11 @@ export function useAIGame(options: UseAIGameOptions) {
   const makePlayerMove = useCallback((move: Move): boolean => {
     if (isAIThinking) return false
     if (gameState.currentPlayer !== playerColor) return false
+
+    // エラーメッセージ付きバリデーション
+    if (!validateMoveWithAlert(gameState, move)) {
+      return false
+    }
 
     const newState = makeMoveLogic(gameState, move)
     if (!newState) return false

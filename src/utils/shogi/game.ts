@@ -18,7 +18,7 @@ import {
   unpromoteForHand,
 } from './board';
 import {
-  isValidMove,
+  isValidMoveWithError,
   isCheckmateSync,
   isStalemateSync,
   isInCheck,
@@ -42,12 +42,25 @@ export function createNewGame(): GameState {
   };
 }
 
+// 移動の結果
+export interface MoveResult {
+  gameState?: GameState;
+  error?: string;
+}
+
 // 移動を実行
 export function makeMove(gameState: GameState, move: Move): GameState | null {
+  const result = makeMoveWithError(gameState, move);
+  return result.gameState || null;
+}
+
+// 移動を実行（エラーメッセージ付き）
+export function makeMoveWithError(gameState: GameState, move: Move): MoveResult {
   try {
     // 移動が合法かチェック
-    if (!isValidMove(gameState, move)) {
-      return null;
+    const validationResult = isValidMoveWithError(gameState, move);
+    if (!validationResult.valid) {
+      return { error: validationResult.error };
     }
 
     // 新しい状態を作成
@@ -109,21 +122,23 @@ export function makeMove(gameState: GameState, move: Move): GameState | null {
     }
 
     return {
-      board: newBoard,
-      handPieces: newHandPieces,
-      currentPlayer: nextPlayer,
-      moveHistory: newMoveHistory,
-      positionHistory: gameState.positionHistory,
-      clockState,
-      timeControl,
+      gameState: {
+        board: newBoard,
+        handPieces: newHandPieces,
+        currentPlayer: nextPlayer,
+        moveHistory: newMoveHistory,
+        positionHistory: gameState.positionHistory,
+        clockState,
+        timeControl,
+      }
     };
   } catch (error) {
     captureException(error as Error, {
-      context: 'game.makeMove',
+      context: 'game.makeMoveWithError',
       move,
       currentPlayer: gameState.currentPlayer
     });
-    return null;
+    return { error: 'エラーが発生しました' };
   }
 }
 

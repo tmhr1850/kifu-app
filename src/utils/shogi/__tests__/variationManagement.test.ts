@@ -1,9 +1,6 @@
 import { 
   createRootNode,
-  createVariationNode,
-  findNodeById,
   addVariation,
-  deleteVariation,
   renameVariation,
   promoteToMainLine,
   getPathToNode,

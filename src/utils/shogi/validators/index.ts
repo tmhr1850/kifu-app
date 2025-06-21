@@ -16,6 +16,7 @@ import {
 import { getPieceValidMoves } from '../pieces';
 import {
   canDropPieceAt,
+  canDropPieceAtWithError,
   wouldBeInCheck,
 } from './basic';
 
@@ -242,6 +243,15 @@ export function isCheckmateSync(gameState: GameState): boolean {
   return validMoves.length === 0;
 }
 
+// 簡易版：移動が合法かチェックしてエラーメッセージを表示
+export function validateMoveWithAlert(gameState: GameState, move: Move): boolean {
+  const result = isValidMoveWithError(gameState, move);
+  if (!result.valid && result.error) {
+    alert(result.error);
+  }
+  return result.valid;
+}
+
 // ステイルメイト（手詰まり）チェック（同期版）
 export function isStalemateSync(gameState: GameState): boolean {
   // 王手されている場合はステイルメイトではない
@@ -309,3 +319,82 @@ import { isInCheck } from './basic';
 // Re-export for external use
 export { isInCheck, canDropPieceAtWithError } from './basic';
 export type { ValidationResult } from './basic';
+
+// 移動が合法かチェック（エラーメッセージ付き）
+export function isValidMoveWithError(gameState: GameState, move: Move): ValidationResult {
+  const { board, handPieces, currentPlayer } = gameState;
+  
+  // プレイヤーチェック
+  if (move.piece.player !== currentPlayer) {
+    return { valid: false, error: '相手の手番です' };
+  }
+  
+  if (move.from) {
+    // 通常の移動
+    return isValidPieceMoveWithError(board, move.from, move.to, currentPlayer);
+  } else {
+    // 持ち駒を打つ
+    return isValidDropWithError(board, handPieces, move.to, move.piece.type, currentPlayer);
+  }
+}
+
+// 駒の移動が合法かチェック（エラーメッセージ付き）
+export function isValidPieceMoveWithError(
+  board: Board,
+  from: Position,
+  to: Position,
+  player: Player
+): ValidationResult {
+  // 移動元の駒を取得
+  const piece = getPieceAt(board, from);
+  if (!piece) {
+    return { valid: false, error: '移動元に駒がありません' };
+  }
+  if (piece.player !== player) {
+    return { valid: false, error: '相手の駒は動かせません' };
+  }
+  
+  // その駒の移動可能な位置を取得
+  const validMoves = getPieceValidMoves(piece.type, board, from, player);
+  
+  // 移動先が移動可能な位置に含まれているかチェック
+  const canMove = validMoves.some(pos => pos.row === to.row && pos.col === to.col);
+  if (!canMove) {
+    return { valid: false, error: 'その駒はそこには動かせません' };
+  }
+  
+  // 王手放置チェック
+  if (wouldBeInCheck(board, from, to, player)) {
+    return { valid: false, error: '王手放置：王様を守ってください' };
+  }
+  
+  return { valid: true };
+}
+
+// 持ち駒を打つのが合法かチェック（エラーメッセージ付き）
+export function isValidDropWithError(
+  board: Board,
+  handPieces: HandPieces,
+  to: Position,
+  pieceType: PieceType,
+  player: Player
+): ValidationResult {
+  // 持ち駒にあるかチェック
+  const count = handPieces[player].get(pieceType) || 0;
+  if (count === 0) {
+    return { valid: false, error: 'その駒は持ち駒にありません' };
+  }
+  
+  // その位置に打てるかチェック（エラーメッセージ付き）
+  const canDropResult = canDropPieceAtWithError(board, to, pieceType, player);
+  if (!canDropResult.valid) {
+    return canDropResult;
+  }
+  
+  // 王手放置チェック
+  if (wouldBeInCheck(board, null, to, player, pieceType)) {
+    return { valid: false, error: '王手放置：王様を守ってください' };
+  }
+  
+  return { valid: true };
+}
