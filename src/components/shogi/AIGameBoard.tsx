@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useMemo, useState } from 'react'
-import { GameState, Move, Player, Position, PieceType, Piece as PieceData } from '@/types/shogi'
+import { GameState, Move, Player, Position, PieceType } from '@/types/shogi'
 import { DraggableBoard } from './DraggableBoard'
 import { getPieceAt } from '@/utils/shogi/board'
 import { Piece } from './Piece'

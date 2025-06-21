@@ -1,6 +1,6 @@
-import { GameState, Move, Player, PieceType, Board } from '@/types/shogi';
+import { GameState, Move, Player, PieceType, Board, Position } from '@/types/shogi';
 import { KifuRecord, KifuMove, GameInfo } from '@/types/kifu';
-import { createNewGame, makeMove, getGameStatus, undoMove } from './game';
+import { createNewGame, makeMove, makeMoveWithError, getGameStatus, undoMove } from './game';
 import { 
   saveKifuRecord, 
   loadKifuRecord, 
@@ -74,11 +74,48 @@ export function loadGameFromKifu(kifuId: string): GameStateWithKifu | null {
   };
 }
 
-// 移動を実行（棋譜記録付き）
+// 移動を実行（棋譜記録付き - 座標版）
+export function makeMoveWithKifu(
+  gameWithKifu: GameStateWithKifu,
+  from: Position,
+  to: Position
+): GameStateWithKifu | null;
+
+// 移動を実行（棋譜記録付き - Move版）
 export function makeMoveWithKifu(
   gameWithKifu: GameStateWithKifu, 
   move: Move
+): GameStateWithKifu | null;
+
+// 移動を実行（棋譜記録付き）
+export function makeMoveWithKifu(
+  gameWithKifu: GameStateWithKifu,
+  fromOrMove: Position | Move,
+  to?: Position
 ): GameStateWithKifu | null {
+  let move: Move;
+  
+  // オーバーロードの処理
+  if ('from' in fromOrMove || 'to' in fromOrMove) {
+    // Move型が渡された場合
+    move = fromOrMove as Move;
+  } else if (to) {
+    // Position型が渡された場合
+    const from = fromOrMove as Position;
+    const piece = gameWithKifu.game.board[from.row][from.col];
+    if (!piece) {
+      return null;
+    }
+    move = {
+      from,
+      to,
+      piece,
+      promote: false // TODO: プロモーション処理の追加
+    };
+  } else {
+    return null;
+  }
+  
   const newGameState = makeMove(gameWithKifu.game, move);
   if (!newGameState) {
     return null;
@@ -358,4 +395,86 @@ export function createGameFromKifu(): GameStateWrapper {
   };
   
   return wrapper;
+}
+
+// 移動結果（エラーメッセージ付き）
+export interface MoveWithKifuResult {
+  gameState?: GameStateWithKifu;
+  error?: string;
+}
+
+// 移動を実行（エラーメッセージ付き - 座標版）
+export function makeMoveWithKifuAndError(
+  gameWithKifu: GameStateWithKifu,
+  from: Position,
+  to: Position
+): MoveWithKifuResult;
+
+// 移動を実行（エラーメッセージ付き - Move版）
+export function makeMoveWithKifuAndError(
+  gameWithKifu: GameStateWithKifu, 
+  move: Move
+): MoveWithKifuResult;
+
+// 移動を実行（エラーメッセージ付き）
+export function makeMoveWithKifuAndError(
+  gameWithKifu: GameStateWithKifu,
+  fromOrMove: Position | Move,
+  to?: Position
+): MoveWithKifuResult {
+  let move: Move;
+  
+  // オーバーロードの処理
+  if ('from' in fromOrMove || 'to' in fromOrMove) {
+    // Move型が渡された場合
+    move = fromOrMove as Move;
+  } else if (to) {
+    // Position型が渡された場合
+    const from = fromOrMove as Position;
+    const piece = gameWithKifu.game.board[from.row][from.col];
+    if (!piece) {
+      return { error: '移動元に駒がありません' };
+    }
+    move = {
+      from,
+      to,
+      piece,
+      promote: false // TODO: プロモーション処理の追加
+    };
+  } else {
+    return { error: '無効な移動です' };
+  }
+  
+  const moveResult = makeMoveWithError(gameWithKifu.game, move);
+  if (moveResult.error) {
+    return { error: moveResult.error };
+  }
+  
+  const newGameState = moveResult.gameState!;
+  
+  // KifuMove形式に変換
+  const kifuMove: KifuMove = {
+    from: move.from ? { row: move.from.row, col: move.from.col } : undefined,
+    to: { row: move.to.row, col: move.to.col },
+    piece: getPieceChar(move.piece.type),
+    promote: move.promote,
+    player: move.piece.player
+  };
+  
+  // 棋譜記録を更新
+  const updatedKifuRecord = {
+    ...gameWithKifu.kifu,
+    moves: [...gameWithKifu.kifu.moves, kifuMove],
+    updatedAt: new Date().toISOString()
+  };
+  
+  // 自動保存（オプション：パフォーマンスを考慮して数手ごとに保存するなど）
+  saveKifuRecord(updatedKifuRecord);
+  
+  return {
+    gameState: {
+      game: newGameState,
+      kifu: updatedKifuRecord
+    }
+  };
 }

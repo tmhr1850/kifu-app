@@ -4,9 +4,10 @@ import React, { useState, useCallback } from 'react'
 import { Move, Player, Position } from '@/types/shogi'
 import { DraggableBoard } from './DraggableBoard'
 import { GameController } from './GameController'
-import { GameStateWithKifu, createNewGameWithKifu, makeMoveWithKifu } from '@/utils/shogi/gameWithKifu'
+import { GameStateWithKifu, createNewGameWithKifu, makeMoveWithKifuAndError } from '@/utils/shogi/gameWithKifu'
 import { KifuSaveDialog } from '../kifu/KifuSaveDialog'
 import { getGameStatus } from '@/utils/shogi/game'
+import { Notification } from '@/components/ui/Notification'
 
 interface GameBoardProps {
   onMove?: (move: Move) => void
@@ -22,13 +23,19 @@ export default function GameBoard({
 }: GameBoardProps) {
   const [gameState, setGameState] = useState<GameStateWithKifu>(() => createNewGameWithKifu())
   const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const handleMove = useCallback((from: Position, to: Position) => {
     if (disabled) return
 
-    const newState = makeMoveWithKifu(gameState, from, to)
-    if (newState) {
-      setGameState(newState)
+    const result = makeMoveWithKifuAndError(gameState, from, to)
+    if (result.error) {
+      setErrorMessage(result.error)
+      return
+    }
+    
+    if (result.gameState) {
+      setGameState(result.gameState)
       
       // 外部のonMoveハンドラーを呼び出す
       if (onMove) {
@@ -88,6 +95,14 @@ export default function GameBoard({
         isOpen={showSaveDialog}
         onClose={() => setShowSaveDialog(false)}
         kifu={gameState.kifu}
+      />
+      
+      {/* エラー通知 */}
+      <Notification
+        message={errorMessage}
+        type="error"
+        duration={3000}
+        onClose={() => setErrorMessage(null)}
       />
     </div>
   )

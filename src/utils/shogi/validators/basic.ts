@@ -228,3 +228,17 @@ export function isUchifuzumeSync(
   
   return true; // 逃げ道がないので打ち歩詰め
 }
+
+// 簡易版：駒打ちが合法かチェックしてエラーメッセージを表示
+export function validateDropWithAlert(
+  board: Board,
+  position: Position,
+  pieceType: PieceType,
+  player: Player
+): boolean {
+  const result = canDropPieceAtWithError(board, position, pieceType, player);
+  if (!result.valid && result.error) {
+    alert(result.error);
+  }
+  return result.valid;
+}
