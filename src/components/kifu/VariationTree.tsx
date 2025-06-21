@@ -8,6 +8,7 @@ interface VariationTreeProps {
   currentPath: VariationPath;
   onNodeClick: (nodeId: string) => void;
   onDeleteVariation?: (nodeId: string) => void;
+  onManageVariation?: (node: VariationNode) => void;
   className?: string;
 }
 
@@ -25,6 +26,7 @@ export default function VariationTree({
   currentPath,
   onNodeClick,
   onDeleteVariation,
+  onManageVariation,
   className = ''
 }: VariationTreeProps) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -144,6 +146,12 @@ export default function VariationTree({
           onMouseEnter={() => setHoveredNode(node.id)}
           onMouseLeave={() => setHoveredNode(null)}
           onClick={() => onNodeClick(node.id)}
+          onContextMenu={(e) => {
+            if (onManageVariation && node.node.moveNumber > 0) {
+              e.preventDefault();
+              onManageVariation(node.node);
+            }
+          }}
           style={{ cursor: 'pointer' }}
         >
           <circle
@@ -286,6 +294,7 @@ export default function VariationTree({
         <h3 className="text-sm font-semibold text-gray-700">変化手順</h3>
         <p className="text-xs text-gray-500 mt-1">
           ノードをクリックして手順を切り替え • 太線: 本譜 • 点線: 変化
+          {onManageVariation && ' • 右クリックで管理'}
         </p>
       </div>
       <div className="p-2">

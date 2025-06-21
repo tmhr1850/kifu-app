@@ -233,3 +233,51 @@ export function wouldCreateVariation(
     child.move.promote === move.promote
   );
 }
+
+/**
+ * Renames a variation node by updating its comment
+ */
+export function renameVariation(root: VariationNode, nodeId: string, name: string): boolean {
+  const node = findNodeById(root, nodeId);
+  if (!node) {
+    return false;
+  }
+  
+  node.comment = name;
+  return true;
+}
+
+/**
+ * Promotes a variation to main line status
+ */
+export function promoteToMainLine(root: VariationNode, nodeId: string): boolean {
+  const node = findNodeById(root, nodeId);
+  if (!node || !node.parentId) {
+    return false;
+  }
+  
+  const parent = findNodeById(root, node.parentId);
+  if (!parent) {
+    return false;
+  }
+  
+  // Mark all siblings as non-main line
+  parent.children.forEach(child => {
+    child.isMainLine = false;
+  });
+  
+  // Mark this node and its ancestors as main line
+  node.isMainLine = true;
+  
+  // Recursively mark descendants as main line if they are the first child
+  function markMainLineDescendants(currentNode: VariationNode) {
+    if (currentNode.children.length > 0) {
+      currentNode.children[0].isMainLine = true;
+      markMainLineDescendants(currentNode.children[0]);
+    }
+  }
+  
+  markMainLineDescendants(node);
+  
+  return true;
+}
